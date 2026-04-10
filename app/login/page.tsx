@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { DottedSurface } from "@/components/ui/dotted-surface";
@@ -11,62 +11,124 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
+type AuthStep = "signup-email" | "signup-otp" | "signin-email" | "signin-otp";
+
 export default function Login() {
   const id = useId();
   const router = useRouter();
   
-  const [isLoginMode, setIsLoginMode] = useState(false);
+  const [step, setStep] = useState<AuthStep>("signin-email");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        router.push("/");
+        router.refresh();
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     setMessage(null);
-    
+
     const supabase = createClient();
 
     try {
-      if (!isLoginMode) {
-        // Sign Up
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: name },
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-        if (error) throw error;
-        setMessage("Account created successfully! Check your email to verify your account or try logging in.");
-        setIsLoginMode(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+      
+      setMessage("OTP sent to your email. Check your inbox and paste it below.");
+      setOtpSent(true);
+      
+      if (step === "signup-email") {
+        setStep("signup-otp");
       } else {
-        // Sign In
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        router.push("/dashboard");
-        router.refresh();
+        setStep("signin-otp");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Authentication failed.");
+      setError(err instanceof Error ? err.message : "Failed to send OTP");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+
+    const supabase = createClient();
+
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: "email",
+      });
+
+      if (error) throw error;
+
+      // If this is signup, update user profile
+      if (step === "signup-otp" && name) {
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { full_name: name },
+        });
+        
+        if (updateError) {
+          console.error("Failed to update profile:", updateError);
+        }
+      }
+
+      setMessage("Verified successfully! Redirecting to paraphrase page...");
+      setTimeout(() => {
+        router.push("/");
+        router.refresh();
+      }, 1500);
+
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "OTP verification failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   const toggleMode = () => {
-    setIsLoginMode(!isLoginMode);
+    if (step.includes("signup")) {
+      setStep("signin-email");
+    } else {
+      setStep("signup-email");
+    }
     setError(null);
     setMessage(null);
+    setOtp("");
+    setOtpSent(false);
+    setName("");
+    setEmail("");
   };
+
+  const isSignup = step.includes("signup");
+  const isOtpStep = step.includes("otp");
 
   return (
     <main className="min-h-[calc(100vh-73px)] w-full flex items-center justify-center p-4 relative overflow-hidden">
@@ -97,10 +159,16 @@ export default function Login() {
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 animate-pulse"></div>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50 text-center">
-            {isLoginMode ? "Welcome back" : "Sign up to ParaphraseAI"}
+            {isOtpStep 
+              ? "Verify OTP" 
+              : (isSignup ? "Sign up to ParaphraseAI" : "Welcome back")}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-            {isLoginMode ? "Enter your credentials to access your dashboard." : "We just need a few details to get you started."}
+            {isOtpStep
+              ? "Enter the OTP sent to your email"
+              : (isSignup 
+                ? "We just need a few details to get you started." 
+                : "Enter your email to receive a login OTP.")}
           </p>
         </div>
 
@@ -116,47 +184,63 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-5 relative z-20">
+        <form onSubmit={isOtpStep ? handleVerifyOtp : handleSendOtp} className="space-y-5 relative z-20">
           <div className="space-y-4">
-            {!isLoginMode && (
+            {isSignup && !isOtpStep && (
               <div className="space-y-2">
                 <Label htmlFor={`${id}-name`}>Full name</Label>
                 <Input
                   id={`${id}-name`}
-                  placeholder="Subhadeep Roy"
+                  placeholder="John Doe"
                   type="text"
-                  required={!isLoginMode}
+                  required={isSignup}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor={`${id}-email`}>Email</Label>
-              <Input
-                id={`${id}-email`}
-                placeholder="subha9.5roy350@gmail.com"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`${id}-password`}>Password</Label>
-              <Input
-                id={`${id}-password`}
-                placeholder="Enter your password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+            
+            {!isOtpStep && (
+              <div className="space-y-2">
+                <Label htmlFor={`${id}-email`}>Email</Label>
+                <Input
+                  id={`${id}-email`}
+                  placeholder="your@email.com"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+
+            {isOtpStep && (
+              <div className="space-y-2">
+                <Label htmlFor={`${id}-otp`}>One-Time Password (OTP)</Label>
+                <Input
+                  id={`${id}-otp`}
+                  placeholder="000000"
+                  type="text"
+                  maxLength={6}
+                  required
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Sent to: <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span>
+                </p>
+              </div>
+            )}
           </div>
           
           <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isLoading}>
-            {isLoading ? "Please wait..." : (isLoginMode ? "Sign In" : "Sign Up")}
+            {isLoading 
+              ? "Please wait..." 
+              : (isOtpStep ? "Verify OTP" : (isSignup ? "Send OTP" : "Send OTP"))}
           </Button>
         </form>
 
@@ -169,11 +253,14 @@ export default function Login() {
           variant="outline" 
           className="w-full mb-6 h-11 relative z-20"
           onClick={toggleMode}
+          disabled={isLoading}
         >
-          {isLoginMode ? "Create an account instead" : "Already have an account? Sign in"}
+          {isOtpStep 
+            ? (isSignup ? "Back to sign up" : "Back to sign in")
+            : (isSignup ? "Already have an account? Sign in" : "Create a new account")}
         </Button>
 
-        {!isLoginMode && (
+        {isSignup && !isOtpStep && (
           <p className="text-gray-500 dark:text-gray-400 text-center text-xs relative z-30">
             By signing up you agree to our <TocDialog />
           </p>
