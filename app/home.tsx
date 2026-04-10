@@ -5,6 +5,7 @@ import TextEditor from "@/components/TextEditor";
 import ToneSelector from "@/components/ToneSelector";
 import ResultCard from "@/components/ResultCard";
 import PlagiarismScore from "@/components/PlagiarismScore";
+import { GridGlowBackground } from "@/components/ui/grid-glow-background";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 
@@ -142,101 +143,105 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen w-full relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
-      {/* 3D Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/20 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/20 dark:bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
-        className="max-w-4xl mx-auto relative z-10"
-      >
-        <div className="text-center mb-10">
-          <motion.h1 
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.8, type: "spring" }}
-            className="text-4xl font-extrabold tracking-tight sm:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400"
-          >
-            AI Paraphraser & Plagiarism Checker
-          </motion.h1>
-          <p className="mt-4 text-xl text-gray-500 dark:text-gray-400 font-light">
-            Rewrite text instantly, perfectly control the tone, and analytically check for structural plagiarism risk.
-          </p>
-        </div>
-
-        {/* Error message container with reserved height to prevent layout shift */}
-        <div className="min-h-[60px]">
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="mb-6 p-4 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-md border-l-4 border-red-500 text-red-700 dark:text-red-400 rounded shadow-sm"
+    <GridGlowBackground
+      backgroundColor="#0a0a0a"
+      gridColor="rgba(255, 255, 255, 0.05)"
+      gridSize={50}
+      glowColors={["#4A00E0", "#8E2DE2", "#4A00E0"]}
+      glowCount={10}
+    >
+      <div className="min-h-screen w-full py-12 px-4 sm:px-6 lg:px-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+          className="max-w-4xl mx-auto relative z-10"
+        >
+          <div className="text-center mb-10">
+            <motion.h1 
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.8, type: "spring" }}
+              className="text-4xl font-extrabold tracking-tight sm:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400"
             >
-              <p>{error}</p>
-            </motion.div>
-          )}
-        </div>
+              AI Paraphraser & Plagiarism Checker
+            </motion.h1>
+            <p className="mt-4 text-xl text-gray-500 dark:text-gray-400 font-light">
+              Rewrite text instantly, perfectly control the tone, and analytically check for structural plagiarism risk.
+            </p>
+          </div>
 
-        <div className="bg-white/80 dark:bg-[#111] backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 dark:border-gray-800">
-          <div className="p-6 sm:p-8">
-            <TextEditor 
-              value={originalText} 
-              onChange={setOriginalText} 
-              disabled={isParaphrasing || isChecking}
-            />
+          {/* Error message container with reserved height to prevent layout shift */}
+          <div className="min-h-[60px]">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="mb-6 p-4 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-md border-l-4 border-red-500 text-red-700 dark:text-red-400 rounded shadow-sm"
+              >
+                <p>{error}</p>
+              </motion.div>
+            )}
+          </div>
 
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-              <ToneSelector 
-                selectedTone={selectedTone} 
-                onChange={setSelectedTone} 
+          <div className="bg-white/80 dark:bg-[#111] backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 dark:border-gray-800">
+            <div className="p-6 sm:p-8">
+              <TextEditor 
+                value={originalText} 
+                onChange={setOriginalText} 
                 disabled={isParaphrasing || isChecking}
               />
-              
-              <button
-                onClick={handleParaphrase}
-                disabled={isParaphrasing || isChecking || !originalText.trim()}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white transform hover:-translate-y-1"
-              >
-                {isParaphrasing ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Synthesizing...
-                  </>
-                ) : "Paraphrase Now"}
-              </button>
-            </div>
 
-            {/* Results container with minimum height to prevent layout shift */}
-            <div className="mt-10 min-h-[200px]">
-              {(rewrittenText || isParaphrasing) && (
-                <ResultCard 
-                  originalText={originalText}
-                  text={rewrittenText} 
-                  isLoading={isParaphrasing} 
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <ToneSelector 
+                  selectedTone={selectedTone} 
+                  onChange={setSelectedTone} 
+                  disabled={isParaphrasing || isChecking}
                 />
-              )}
-            </div>
+                
+                <button
+                  onClick={handleParaphrase}
+                  disabled={isParaphrasing || isChecking || !originalText.trim()}
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white transform hover:-translate-y-1"
+                >
+                  {isParaphrasing ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Synthesizing...
+                    </>
+                  ) : "Paraphrase Now"}
+                </button>
+              </div>
 
-            {/* Plagiarism score container with minimum height */}
-            <div className="min-h-[180px]">
-              {(similarityScore !== null || isChecking) && (
-                <PlagiarismScore
-                  score={similarityScore}
-                  webScore={webScore}
-                  webCheckMeta={webCheckMeta}
-                  isChecking={isChecking}
-                />
-              )}
+              {/* Results container with minimum height to prevent layout shift */}
+              <div className="mt-10 min-h-[200px]">
+                {(rewrittenText || isParaphrasing) && (
+                  <ResultCard 
+                    originalText={originalText}
+                    text={rewrittenText} 
+                    isLoading={isParaphrasing} 
+                  />
+                )}
+              </div>
+
+              {/* Plagiarism score container with minimum height */}
+              <div className="min-h-[180px]">
+                {(similarityScore !== null || isChecking) && (
+                  <PlagiarismScore
+                    score={similarityScore}
+                    webScore={webScore}
+                    webCheckMeta={webCheckMeta}
+                    isChecking={isChecking}
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
-    </main>
+        </motion.div>
+      </div>
+    </GridGlowBackground>
   );
 }
