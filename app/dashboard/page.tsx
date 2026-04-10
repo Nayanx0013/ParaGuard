@@ -6,6 +6,7 @@ import { FileText, Type, Percent, Calendar, Copy, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GridGlowBackground } from "@/components/ui/grid-glow-background";
+import { GlowingShadow } from "@/components/ui/glowing-shadow";
 import { Component as DashboardLoader } from "@/components/ui/loader-3";
 import type { User } from "@supabase/supabase-js";
 
@@ -95,17 +96,19 @@ export default function Dashboard() {
           </motion.div>
 
           {!histories || histories.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-white/80 dark:bg-[#111] backdrop-blur-md p-16 text-center rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 flex flex-col items-center"
-            >
+            <GlowingShadow className="w-full">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white/80 dark:bg-[#111] backdrop-blur-md p-16 text-center rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 flex flex-col items-center"
+              >
               <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-full mb-6">
                 <FileText size={64} className="text-blue-500 dark:text-blue-400" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">No history found</h3>
               <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-md">Return to the homepage and paraphrase your first document to see your intelligent insights saved securely here.</p>
             </motion.div>
+            </GlowingShadow>
           ) : (
             <motion.div 
               initial="hidden"
@@ -117,15 +120,15 @@ export default function Dashboard() {
               className="grid gap-6 md:grid-cols-2 lg:grid-cols-2"
             >
               {histories.map((item) => (
-                <motion.div 
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    show: { opacity: 1, y: 0 }
-                  }}
-                  whileHover={{ y: -5, scale: 1.01 }}
-                  key={item.id} 
-                  className="bg-white/90 dark:bg-[#111] p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 flex flex-col h-full relative overflow-hidden group"
-                >
+                <GlowingShadow key={item.id} className="w-full">
+                  <motion.div 
+                    variants={{
+                      hidden: { opacity: 0, y: 20 },
+                      show: { opacity: 1, y: 0 }
+                    }}
+                    whileHover={{ y: -5, scale: 1.01 }}
+                    className="bg-white/90 dark:bg-[#111] p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 flex flex-col h-full relative overflow-hidden group"
+                  >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/5 dark:to-purple-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
 
                   <div className="flex justify-between items-center mb-6 relative z-10">
@@ -179,7 +182,8 @@ export default function Dashboard() {
                       </span>
                     </div>
                   </div>
-                </motion.div>
+                  </motion.div>
+                </GlowingShadow>
               ))}
             </motion.div>
           )}

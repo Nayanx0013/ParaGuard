@@ -5,6 +5,7 @@ import { Copy, CheckCircle2, Download, Eye, FileText, ChevronDown } from "lucide
 import TextDiffView from "./TextDiffView";
 import { motion, AnimatePresence } from "framer-motion";
 import Loader4 from "./ui/loader-4";
+import { GlowingShadow } from "./ui/glowing-shadow";
 
 interface ResultCardProps {
   originalText: string;
@@ -99,15 +100,16 @@ export default function ResultCard({ originalText, text, isLoading }: ResultCard
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, type: "spring", bounce: 0.4 }}
-      className="w-full flex flex-col gap-4 relative group"
-    >
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-500 -z-10"></div>
+    <GlowingShadow className="w-full">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, type: "spring", bounce: 0.4 }}
+        className="w-full flex flex-col gap-4 relative group"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-500 -z-10"></div>
 
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/80 dark:bg-[#111] backdrop-blur-md p-4 rounded-t-xl border-b border-gray-100 dark:border-gray-800 relative z-50">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/80 dark:bg-[#111] backdrop-blur-md p-4 rounded-t-xl border-b border-gray-100 dark:border-gray-800 relative z-50">
         <h3 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
           Paraphrased Result
         </h3>
@@ -200,6 +202,7 @@ export default function ResultCard({ originalText, text, isLoading }: ResultCard
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+      </motion.div>
+    </GlowingShadow>
   );
 }
