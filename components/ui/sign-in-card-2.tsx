@@ -1,6 +1,5 @@
 'use client'
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { Mail, ArrowRight, Loader } from 'lucide-react';
@@ -477,25 +476,6 @@ export function SignInCard2() {
                   </motion.button>
                 )}
               </form>
-
-              {/* Sign up link */}
-              <motion.p 
-                className="text-center text-xs text-white/60 mt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                Don&apos;t have an account?{' '}
-                <Link 
-                  href="/signup" 
-                  className="relative inline-block group/signup"
-                >
-                  <span className="relative z-10 text-white group-hover/signup:text-white/70 transition-colors duration-300 font-medium">
-                    Sign up
-                  </span>
-                  <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-white group-hover/signup:w-full transition-all duration-300" />
-                </Link>
-              </motion.p>
             </div>
           </div>
         </motion.div>
