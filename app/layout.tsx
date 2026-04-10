@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://para-guard-qourolr5l-nayanx0013s-projects.vercel.app";
 
 export const metadata: Metadata = {
   title: "AI Paraphraser & Plagiarism Checker",
