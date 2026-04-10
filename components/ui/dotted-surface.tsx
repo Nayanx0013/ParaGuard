@@ -26,9 +26,12 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
     const AMOUNTX = 40;
     const AMOUNTY = 60;
 
+    const container = containerRef.current;
+
     // Scene setup
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xffffff, 2000, 10000);
+    scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.Fog(0x000000, 2000, 10000);
 
     const camera = new THREE.PerspectiveCamera(
       60,
@@ -43,11 +46,16 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
       antialias: true,
     });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(scene.fog.color, 0);
-
-    const container = containerRef.current;
+    
+    // Use container dimensions instead of window
+    const width = container.clientWidth || window.innerWidth;
+    const height = container.clientHeight || window.innerHeight;
+    renderer.setSize(width, height);
+    renderer.setClearColor(0x000000, 0);
+    
+    container.style.position = 'relative';
     container.appendChild(renderer.domElement);
+    renderer.domElement.style.display = 'block';
 
     const positions: number[] = [];
     const colors: number[] = [];
@@ -183,7 +191,7 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
   return (
     <div
       ref={containerRef}
-      className={cn("pointer-events-none fixed inset-0 -z-10", className)}
+      className={cn("pointer-events-none absolute inset-0", className)}
       {...props}
     />
   );
