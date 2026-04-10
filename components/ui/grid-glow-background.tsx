@@ -5,11 +5,94 @@ import React, { useRef, useEffect } from "react";
 // GridGlowBackground Props
 interface GridGlowBackgroundProps {
   children: React.ReactNode;
-  backgroundColor?: string;    // default "#0a0a0a"
-  gridColor?: string;          // default "rgba(255,255,255,0.05)"
-  gridSize?: number;           // default 50
-  glowColors?: string[];       // default ["#4A00E0","#8E2DE2","#4A00E0"]
-  glowCount?: number;          // default 10
+  backgroundColor?: string;
+  gridColor?: string;
+  gridSize?: number;
+  glowColors?: string[];
+  glowCount?: number;
+}
+
+// Glow class defined outside component
+class Glow {
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  radius: number;
+  speed: number;
+  color: string;
+  alpha: number;
+  canvasRef: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  gridSize: number;
+  glowColors: string[];
+
+  constructor(
+    canvasRef: HTMLCanvasElement,
+    context: CanvasRenderingContext2D,
+    gridSize: number,
+    glowColors: string[]
+  ) {
+    this.canvasRef = canvasRef;
+    this.context = context;
+    this.gridSize = gridSize;
+    this.glowColors = glowColors;
+    this.x =
+      Math.floor(Math.random() * (this.canvasRef.width / gridSize)) * gridSize;
+    this.y =
+      Math.floor(Math.random() * (this.canvasRef.height / gridSize)) * gridSize;
+    this.targetX = this.x;
+    this.targetY = this.y;
+    this.radius = Math.random() * 80 + 40;
+    this.speed = Math.random() * 0.015 + 0.01;
+    this.color =
+      glowColors[Math.floor(Math.random() * glowColors.length)];
+    this.alpha = 0;
+    this.setNewTarget();
+  }
+
+  setNewTarget() {
+    this.targetX =
+      Math.floor(
+        Math.random() * (this.canvasRef.width / this.gridSize)
+      ) * this.gridSize;
+    this.targetY =
+      Math.floor(
+        Math.random() * (this.canvasRef.height / this.gridSize)
+      ) * this.gridSize;
+  }
+
+  update() {
+    this.x += (this.targetX - this.x) * this.speed;
+    this.y += (this.targetY - this.y) * this.speed;
+
+    if (
+      Math.abs(this.targetX - this.x) < 1 &&
+      Math.abs(this.targetY - this.y) < 1
+    ) {
+      this.setNewTarget();
+    }
+    if (this.alpha < 1) this.alpha += 0.01;
+  }
+
+  draw() {
+    this.context.globalAlpha = this.alpha;
+    const grad = this.context.createRadialGradient(
+      this.x,
+      this.y,
+      0,
+      this.x,
+      this.y,
+      this.radius
+    );
+    grad.addColorStop(0, this.color);
+    grad.addColorStop(1, "transparent");
+    this.context.fillStyle = grad;
+    this.context.beginPath();
+    this.context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+    this.context.fill();
+    this.context.globalAlpha = 1;
+  }
 }
 
 export const GridGlowBackground: React.FC<GridGlowBackgroundProps> = ({
@@ -31,80 +114,13 @@ export const GridGlowBackground: React.FC<GridGlowBackgroundProps> = ({
     let glows: Glow[] = [];
     let frameId: number;
 
-    class Glow {
-      x: number;
-      y: number;
-      targetX: number;
-      targetY: number;
-      radius: number;
-      speed: number;
-      color: string;
-      alpha: number;
-      canvasRef: HTMLCanvasElement;
-      context: CanvasRenderingContext2D;
-
-      constructor(canvasRef: HTMLCanvasElement, context: CanvasRenderingContext2D) {
-        this.canvasRef = canvasRef;
-        this.context = context;
-        this.x =
-          Math.floor(Math.random() * (this.canvasRef.width / gridSize)) * gridSize;
-        this.y =
-          Math.floor(Math.random() * (this.canvasRef.height / gridSize)) * gridSize;
-        this.targetX = this.x;
-        this.targetY = this.y;
-        this.radius = Math.random() * 80 + 40;
-        this.speed = Math.random() * 0.015 + 0.01;
-        this.color = glowColors[
-          Math.floor(Math.random() * glowColors.length)
-        ];
-        this.alpha = 0;
-        this.setNewTarget();
-      }
-
-      setNewTarget() {
-        this.targetX =
-          Math.floor(Math.random() * (this.canvasRef.width / gridSize)) * gridSize;
-        this.targetY =
-          Math.floor(Math.random() * (this.canvasRef.height / gridSize)) * gridSize;
-      }
-
-      update() {
-        this.x += (this.targetX - this.x) * this.speed;
-        this.y += (this.targetY - this.y) * this.speed;
-
-        if (
-          Math.abs(this.targetX - this.x) < 1 &&
-          Math.abs(this.targetY - this.y) < 1
-        ) {
-          this.setNewTarget();
-        }
-        if (this.alpha < 1) this.alpha += 0.01;
-      }
-
-      draw() {
-        this.context.globalAlpha = this.alpha;
-        const grad = this.context.createRadialGradient(
-          this.x,
-          this.y,
-          0,
-          this.x,
-          this.y,
-          this.radius
-        );
-        grad.addColorStop(0, this.color);
-        grad.addColorStop(1, "transparent");
-        this.context.fillStyle = grad;
-        this.context.beginPath();
-        this.context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-        this.context.fill();
-        this.context.globalAlpha = 1;
-      }
-    }
-
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      glows = Array.from({ length: glowCount }, () => new Glow(canvas, ctx));
+      glows = Array.from(
+        { length: glowCount },
+        () => new Glow(canvas, ctx, gridSize, glowColors)
+      );
     };
 
     const drawGrid = () => {
@@ -146,7 +162,7 @@ export const GridGlowBackground: React.FC<GridGlowBackgroundProps> = ({
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(frameId);
     };
-  }, [gridColor, gridSize, glowColors, glowCount]);
+  }, [gridColor, gridSize, glowColors, glowCount, backgroundColor]);
 
   return (
     <div

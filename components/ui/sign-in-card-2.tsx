@@ -29,7 +29,6 @@ export function SignInCard2() {
   const [isLoading, setIsLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // For 3D card effect
   const mouseX = useMotionValue(0);
@@ -41,7 +40,6 @@ export function SignInCard2() {
     const rect = e.currentTarget.getBoundingClientRect();
     mouseX.set(e.clientX - rect.left - rect.width / 2);
     mouseY.set(e.clientY - rect.top - rect.height / 2);
-    setMousePosition({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseLeave = () => {
@@ -560,7 +558,7 @@ export function SignInCard2() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
                 >
-                  Don't have an account?{' '}
+                  Don&apos;t have an account?{' '}
                   <Link 
                     href="/signup" 
                     className="relative inline-block group/signup"
