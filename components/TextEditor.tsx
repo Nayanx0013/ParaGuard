@@ -1,7 +1,5 @@
 "use client";
 
-import { ChangeEvent } from "react";
-
 interface TextEditorProps {
   value: string;
   onChange: (value: string) => void;

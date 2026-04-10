@@ -46,10 +46,9 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(scene.fog.color, 0);
 
-    containerRef.current.appendChild(renderer.domElement);
+    const container = containerRef.current;
+    container.appendChild(renderer.domElement);
 
-    // Create particles
-    const particles: THREE.Points[] = [];
     const positions: number[] = [];
     const colors: number[] = [];
 
@@ -172,10 +171,10 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
 
         sceneRef.current.renderer.dispose();
 
-        if (containerRef.current && sceneRef.current.renderer.domElement) {
-          containerRef.current.removeChild(
-            sceneRef.current.renderer.domElement,
-          );
+        if (container && sceneRef.current.renderer.domElement) {
+          if (container.contains(sceneRef.current.renderer.domElement)) {
+            container.removeChild(sceneRef.current.renderer.domElement);
+          }
         }
       }
     };

@@ -4,7 +4,7 @@ import PlagiarismScore from "@/components/PlagiarismScore";
 
 describe("PlagiarismScore", () => {
   it("renders sample-based safe-state copy", () => {
-    render(<PlagiarismScore score={35} webScore={0} isChecking={false} />);
+    render(<PlagiarismScore score={35} webScore={{ score: 0, low: 0, high: 0 }} isChecking={false} />);
 
     expect(screen.getByText(/Live Internet Sample Check/i)).toBeInTheDocument();
     expect(
