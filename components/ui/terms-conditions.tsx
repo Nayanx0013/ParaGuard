@@ -15,6 +15,7 @@ import {
 
 export default function TocDialog() {
   const [hasReadToBottom, setHasReadToBottom] = useState(false);
+  const [open, setOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const evaluateReadState = () => {
@@ -28,12 +29,14 @@ export default function TocDialog() {
     }
   };
 
+  // Re-evaluate every time dialog opens
   useEffect(() => {
+    if (!open) return;
     const timer = setTimeout(() => {
       evaluateReadState();
-    }, 100);
+    }, 150); // slight delay to ensure DOM is ready
     return () => clearTimeout(timer);
-  }, []);
+  }, [open]);
 
   const handleScroll = () => {
     if (hasReadToBottom) return;
@@ -41,9 +44,14 @@ export default function TocDialog() {
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={(val) => {
+      setOpen(val);
+      if (!val) setHasReadToBottom(false); // reset on close
+    }}>
       <DialogTrigger asChild>
-        <Button variant="link" className="underline hover:no-underline px-1 py-0 h-auto">Terms & Conditions</Button>
+        <Button variant="link" className="underline hover:no-underline px-1 py-0 h-auto">
+          Terms & Conditions
+        </Button>
       </DialogTrigger>
       <DialogContent className="flex max-h-[80vh] flex-col gap-0 p-0 sm:max-h-[min(640px,80vh)] sm:max-w-lg [&>button:last-child]:top-3.5">
         <DialogHeader className="space-y-0 text-left">
@@ -61,9 +69,7 @@ export default function TocDialog() {
               <div className="[&_strong]:text-gray-900 dark:[&_strong]:text-gray-100 space-y-4 [&_strong]:font-semibold">
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <p>
-                      <strong>Acceptance of Terms</strong>
-                    </p>
+                    <p><strong>Acceptance of Terms</strong></p>
                     <p>
                       By accessing and using this website, users agree to
                       comply with and be bound by these Terms of Service.
@@ -71,11 +77,8 @@ export default function TocDialog() {
                       discontinue use of the website immediately.
                     </p>
                   </div>
-
                   <div className="space-y-1">
-                    <p>
-                      <strong>User Account Responsibilities</strong>
-                    </p>
+                    <p><strong>User Account Responsibilities</strong></p>
                     <p>
                       Users are responsible for maintaining the
                       confidentiality of their account credentials. Any
@@ -85,11 +88,8 @@ export default function TocDialog() {
                       any unauthorized account access.
                     </p>
                   </div>
-
                   <div className="space-y-1">
-                    <p>
-                      <strong>Content Usage and Restrictions</strong>
-                    </p>
+                    <p><strong>Content Usage and Restrictions</strong></p>
                     <p>
                       The website and its original content are protected by
                       intellectual property laws. Users may not reproduce,
@@ -110,9 +110,7 @@ export default function TocDialog() {
             </span>
           )}
           <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
+            <Button type="button" variant="outline">Cancel</Button>
           </DialogClose>
           <DialogClose asChild>
             <Button type="button" disabled={!hasReadToBottom}>
