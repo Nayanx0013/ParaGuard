@@ -63,17 +63,17 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
 
         positions.push(x, y, z);
         
-        // Randomly pick between White, Neon Blue, Neon Red
+        // Randomly pick between bright neon colors
         const rand = Math.random();
         let r, g, b;
         if (theme === "dark") {
-           if (rand < 0.25) { r = 1; g = 1; b = 1; } // White
-           else if (rand < 0.6) { r = 0.1; g = 0.5; b = 1.0; } // Neon Blue
-           else { r = 1.0; g = 0.1; b = 0.3; } // Neon Red
+           if (rand < 0.33) { r = 0.0; g = 1.0; b = 1.0; } // Neon Cyan
+           else if (rand < 0.66) { r = 1.0; g = 0.0; b = 1.0; } // Neon Magenta
+           else { r = 0.2; g = 1.0; b = 0.2; } // Neon Green
         } else {
-           if (rand < 0.25) { r = 0; g = 0; b = 0; } // Black
-           else if (rand < 0.6) { r = 0.0; g = 0.2; b = 0.8; } // Dark Blue
-           else { r = 0.8; g = 0.0; b = 0.1; } // Dark Red
+           if (rand < 0.33) { r = 0.0; g = 0.5; b = 1.0; } // Blue
+           else if (rand < 0.66) { r = 1.0; g = 0.0; b = 0.5; } // Magenta
+           else { r = 0.0; g = 0.5; b = 0.0; } // Green
         }
         colors.push(r, g, b);
       }
@@ -90,7 +90,7 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
       size: 8,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 1.0,
       sizeAttenuation: true,
     });
 

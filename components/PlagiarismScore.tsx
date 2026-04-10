@@ -25,8 +25,8 @@ function getRiskLevel(score: number) {
     return {
       label: "Safe to Submit",
       color: "green",
-      badge: "bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800",
-      textColor: "text-green-800 dark:text-green-400",
+      badge: "bg-green-400/10 dark:bg-green-500/5 border-green-300/50 dark:border-green-600/20",
+      textColor: "text-green-700 dark:text-green-400",
       barColor: "bg-green-500",
       icon: CheckCircle2,
     };
@@ -34,8 +34,8 @@ function getRiskLevel(score: number) {
     return {
       label: "Low Match Risk",
       color: "yellow",
-      badge: "bg-yellow-50/50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800",
-      textColor: "text-yellow-800 dark:text-yellow-400",
+      badge: "bg-yellow-400/10 dark:bg-yellow-500/5 border-yellow-300/50 dark:border-yellow-600/20",
+      textColor: "text-yellow-700 dark:text-yellow-400",
       barColor: "bg-yellow-500",
       icon: Info,
     };
@@ -43,16 +43,16 @@ function getRiskLevel(score: number) {
     return {
       label: "Moderate Match Risk",
       color: "orange",
-      badge: "bg-orange-50/50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800",
-      textColor: "text-orange-800 dark:text-orange-400",
+      badge: "bg-orange-400/10 dark:bg-orange-500/5 border-orange-300/50 dark:border-orange-600/20",
+      textColor: "text-orange-700 dark:text-orange-400",
       barColor: "bg-orange-500",
       icon: AlertTriangle,
     };
   return {
     label: "High Match Risk",
     color: "red",
-    badge: "bg-red-50/50 dark:bg-red-900/10 border-red-300 dark:border-red-800",
-    textColor: "text-red-800 dark:text-red-400",
+    badge: "bg-red-400/10 dark:bg-red-500/5 border-red-300/50 dark:border-red-600/20",
+    textColor: "text-red-700 dark:text-red-400",
     barColor: "bg-red-500",
     icon: AlertTriangle,
   };
@@ -76,7 +76,7 @@ function getWarningMessage(
 export default function PlagiarismScore({ score, webScore, webCheckMeta, isChecking }: PlagiarismScoreProps) {
   if (isChecking) {
     return (
-      <div className="w-full mt-6 p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-transparent flex flex-col items-center justify-center py-12 space-y-6">
+      <div className="w-full mt-6 p-4 border border-white/10 dark:border-white/5 rounded-lg bg-white/5 dark:bg-black/20 backdrop-blur-md flex flex-col items-center justify-center py-12 space-y-6">
         <RippleWaveLoader />
         <p className="text-sm font-medium text-gray-500 animate-pulse tracking-wide">Scanning the live internet for exact matches...</p>
       </div>
@@ -106,7 +106,7 @@ export default function PlagiarismScore({ score, webScore, webCheckMeta, isCheck
         animate={{ opacity: 1, x: 0 }}
         whileHover={{ scale: 1.01 }}
         className={`p-4 border rounded-lg flex items-start gap-4 transition-all duration-300 shadow-sm ${
-          isStructureHighRisk ? "bg-orange-50/50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800" : "bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+          isStructureHighRisk ? "bg-orange-400/10 dark:bg-orange-500/5 border-orange-300/50 dark:border-orange-600/20" : "bg-green-400/10 dark:bg-green-500/5 border-green-300/50 dark:border-green-600/20"
         }`}
       >
         <div className="mt-1">

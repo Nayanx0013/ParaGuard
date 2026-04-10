@@ -40,9 +40,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-gray-50 dark:bg-[#0A0A0A] text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-300`}>
+      <body className={`${inter.className} bg-black dark:bg-[#0A0A0A] text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-300`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <nav className="w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-50 transition-colors duration-300">
+          <nav className="w-full border-b border-white/10 dark:border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-2xl shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-50 transition-colors duration-300">
             <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
               ParaphraseAI
             </Link>

@@ -23,7 +23,7 @@ export default function Login() {
   }, [router]);
 
   return (
-    <div className="relative min-h-screen w-full">
+    <div className="relative min-h-screen w-full bg-black">
       <DottedSurface />
       <div className="relative z-10 flex min-h-screen items-center justify-center">
         <SignInCard2 />

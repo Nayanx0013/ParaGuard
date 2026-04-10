@@ -177,14 +177,14 @@ export default function HomePage() {
               <motion.div 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="mb-6 p-4 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-md border-l-4 border-red-500 text-red-700 dark:text-red-400 rounded shadow-sm"
+                className="mb-6 p-4 bg-red-400/20 dark:bg-red-600/15 backdrop-blur-lg border-l-4 border-red-500/50 text-red-700 dark:text-red-300 rounded shadow-sm"
               >
                 <p>{error}</p>
               </motion.div>
             )}
           </div>
 
-          <div className="bg-white/80 dark:bg-[#111] backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 dark:border-gray-800">
+          <div className="bg-white/10 dark:bg-black/30 backdrop-blur-2xl rounded-2xl shadow-2xl dark:shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 dark:border-white/10">
             <div className="p-6 sm:p-8">
               <TextEditor 
                 value={originalText} 

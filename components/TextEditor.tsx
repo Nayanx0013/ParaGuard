@@ -14,7 +14,7 @@ export default function TextEditor({ value, onChange, disabled }: TextEditorProp
       </label>
       <textarea
         id="original-text"
-        className="w-full h-64 p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-gray-900 dark:text-white dark:placeholder-gray-600"
+        className="w-full h-64 p-4 border border-white/20 dark:border-white/10 rounded-lg shadow-sm bg-white/10 dark:bg-black/20 backdrop-blur-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:bg-white/15 dark:focus:bg-black/30 resize-none text-gray-900 dark:text-white dark:placeholder-gray-500 placeholder-gray-600 transition-all"
         placeholder="Paste your text here to paraphrase..."
         value={value}
         onChange={(e) => onChange(e.target.value)}

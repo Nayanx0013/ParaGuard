@@ -109,7 +109,7 @@ export default function ResultCard({ originalText, text, isLoading }: ResultCard
       >
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-500 -z-10"></div>
 
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/80 dark:bg-[#111] backdrop-blur-md p-4 rounded-t-xl border-b border-gray-100 dark:border-gray-800 relative z-50">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/10 dark:bg-black/20 backdrop-blur-xl p-4 rounded-t-xl border border-white/10 dark:border-white/5 relative z-50">
         <h3 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
           Paraphrased Result
         </h3>
@@ -177,7 +177,7 @@ export default function ResultCard({ originalText, text, isLoading }: ResultCard
         </div>
       </div>
 
-      <div className="bg-white/90 dark:bg-[#111] backdrop-blur-sm rounded-b-xl border border-t-0 border-gray-100 dark:border-gray-800 overflow-hidden relative">
+      <div className="bg-white/10 dark:bg-black/20 backdrop-blur-xl rounded-b-xl border border-white/10 dark:border-white/5 overflow-hidden relative">
         <AnimatePresence mode="wait">
           {viewMode === "clean" ? (
             <motion.div

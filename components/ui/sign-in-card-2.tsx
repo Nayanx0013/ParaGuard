@@ -115,37 +115,7 @@ export function SignInCard2() {
 
   return (
     <div className="min-h-screen w-screen relative overflow-hidden flex items-center justify-center">
-      {/* Top radial glow */}
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[120vh] h-[60vh] rounded-b-[50%] bg-purple-400/20 blur-[80px]" />
-      <motion.div 
-        className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[100vh] h-[60vh] rounded-b-full bg-purple-300/20 blur-[60px]"
-        animate={{ 
-          opacity: [0.15, 0.3, 0.15],
-          scale: [0.98, 1.02, 0.98]
-        }}
-        transition={{ 
-          duration: 8, 
-          repeat: Infinity,
-          repeatType: "mirror"
-        }}
-      />
-      <motion.div 
-        className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-[90vh] h-[90vh] rounded-t-full bg-purple-400/20 blur-[60px]"
-        animate={{ 
-          opacity: [0.3, 0.5, 0.3],
-          scale: [1, 1.1, 1]
-        }}
-        transition={{ 
-          duration: 6, 
-          repeat: Infinity,
-          repeatType: "mirror",
-          delay: 1
-        }}
-      />
-
-      {/* Animated glow spots */}
-      <div className="absolute left-1/4 top-1/4 w-96 h-96 bg-white/5 rounded-full blur-[100px] animate-pulse opacity-40" />
-      <div className="absolute right-1/4 bottom-1/4 w-96 h-96 bg-white/5 rounded-full blur-[100px] animate-pulse opacity-40" style={{ animationDelay: '1s' }} />
+      {/* Removed purple gradients - background is now handled by parent */}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

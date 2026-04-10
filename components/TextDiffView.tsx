@@ -15,18 +15,18 @@ export default function TextDiffView({ originalText, rewrittenText }: TextDiffVi
   }, [originalText, rewrittenText]);
 
   return (
-    <div className="w-full min-h-[16rem] p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-inner text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed transition-colors duration-300">
+    <div className="w-full min-h-[16rem] p-4 bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-lg shadow-inner backdrop-blur-xl text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed transition-colors duration-300">
       {diffResult.map((part, index) => {
         if (part.added) {
           return (
-            <span key={index} className="bg-green-200 dark:bg-green-900/50 text-green-900 dark:text-green-200 rounded px-1 transition-colors">
+            <span key={index} className="bg-green-400/30 dark:bg-green-500/20 text-green-800 dark:text-green-300 rounded px-1 transition-colors">
               {part.value}
             </span>
           );
         }
         if (part.removed) {
           return (
-            <span key={index} className="bg-red-200 dark:bg-red-900/50 text-red-900 dark:text-red-200 line-through rounded px-1 opacity-70 transition-colors">
+            <span key={index} className="bg-red-400/30 dark:bg-red-500/20 text-red-800 dark:text-red-300 line-through rounded px-1 opacity-70 transition-colors">
               {part.value}
             </span>
           );
