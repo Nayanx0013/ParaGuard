@@ -131,7 +131,7 @@ export default function Login() {
   const isOtpStep = step.includes("otp");
 
   return (
-    <main className="min-h-[calc(100vh-73px)] w-full flex items-center justify-center p-4 relative overflow-hidden">
+    <main className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
       {/* 3D Background */}
       <DottedSurface />
 
@@ -172,17 +172,23 @@ export default function Login() {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 text-sm rounded-lg relative z-20">
-            {error}
-          </div>
-        )}
+        {/* Error message container - reserved height to prevent layout shift */}
+        <div className="min-h-[52px] mb-6">
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 text-sm rounded-lg relative z-20">
+              {error}
+            </div>
+          )}
+        </div>
         
-        {message && (
-          <div className="mb-6 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 text-green-700 dark:text-green-400 text-sm rounded-lg relative z-20">
-            {message}
-          </div>
-        )}
+        {/* Success message container - reserved height to prevent layout shift */}
+        <div className="min-h-[52px] mb-6">
+          {message && (
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 text-green-700 dark:text-green-400 text-sm rounded-lg relative z-20">
+              {message}
+            </div>
+          )}
+        </div>
 
         <form onSubmit={isOtpStep ? handleVerifyOtp : handleSendOtp} className="space-y-5 relative z-20">
           <div className="space-y-4">

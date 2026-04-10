@@ -142,7 +142,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen w-full relative overflow-hidden py-12 px-4 sm:px-6 lg:px-8">
       {/* 3D Background Elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/20 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/20 dark:bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -167,15 +167,18 @@ export default function HomePage() {
           </p>
         </div>
 
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="mb-6 p-4 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-md border-l-4 border-red-500 text-red-700 dark:text-red-400 rounded shadow-sm"
-          >
-            <p>{error}</p>
-          </motion.div>
-        )}
+        {/* Error message container with reserved height to prevent layout shift */}
+        <div className="min-h-[60px]">
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="mb-6 p-4 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-md border-l-4 border-red-500 text-red-700 dark:text-red-400 rounded shadow-sm"
+            >
+              <p>{error}</p>
+            </motion.div>
+          )}
+        </div>
 
         <div className="bg-white/80 dark:bg-[#111] backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 dark:border-gray-800">
           <div className="p-6 sm:p-8">
@@ -209,22 +212,28 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="mt-10">
-              <ResultCard 
-                originalText={originalText}
-                text={rewrittenText} 
-                isLoading={isParaphrasing} 
-              />
+            {/* Results container with minimum height to prevent layout shift */}
+            <div className="mt-10 min-h-[200px]">
+              {(rewrittenText || isParaphrasing) && (
+                <ResultCard 
+                  originalText={originalText}
+                  text={rewrittenText} 
+                  isLoading={isParaphrasing} 
+                />
+              )}
             </div>
 
-            {(similarityScore !== null || isChecking) && (
-              <PlagiarismScore
-                score={similarityScore}
-                webScore={webScore}
-                webCheckMeta={webCheckMeta}
-                isChecking={isChecking}
-              />
-            )}
+            {/* Plagiarism score container with minimum height */}
+            <div className="min-h-[180px]">
+              {(similarityScore !== null || isChecking) && (
+                <PlagiarismScore
+                  score={similarityScore}
+                  webScore={webScore}
+                  webCheckMeta={webCheckMeta}
+                  isChecking={isChecking}
+                />
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
