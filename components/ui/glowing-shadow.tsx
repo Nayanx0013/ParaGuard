@@ -173,10 +173,8 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
         }
 
         .glow-wrapper:hover .glow-content {
-          mix-blend-mode: darken;
           --text-color: white;
-          box-shadow: 0 0 calc(var(--white-shadow) * 1vw) calc(var(--white-shadow) * 0.15vw) rgb(255 255 255 / 20%);
-          animation: shadow-pulse calc(var(--animation-speed) * 2) linear infinite;
+          box-shadow: 0 0 calc(var(--white-shadow) * 0.5vw) calc(var(--white-shadow) * 0.1vw) rgb(255 255 255 / 10%);
         }
 
         .glow-wrapper:hover .glow-content:before {
@@ -186,13 +184,13 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
         }
 
         .glow-wrapper:hover .glow {
-          --glow-blur: 1.5;
-          --glow-opacity: 1;
-          --glow-scale: 2.5;
+          --glow-blur: 2;
+          --glow-opacity: 0.6;
+          --glow-scale: 1.8;
           --glow-radius: 0;
           --rotate: 900;
           --glow-rotate-unit: 0;
-          --scale-factor: 1.25;
+          --scale-factor: 1;
           animation-play-state: paused;
         }
 
