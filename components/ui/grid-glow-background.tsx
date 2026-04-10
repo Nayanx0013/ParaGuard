@@ -126,6 +126,8 @@ export const GridGlowBackground: React.FC<GridGlowBackgroundProps> = ({
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       drawGrid();
       glows.forEach((g) => {
         g.update();
@@ -134,8 +136,11 @@ export const GridGlowBackground: React.FC<GridGlowBackgroundProps> = ({
       frameId = requestAnimationFrame(animate);
     };
 
+    // Initialize immediately
     resize();
     animate();
+    
+    // Handle resize events
     window.addEventListener("resize", resize);
     return () => {
       window.removeEventListener("resize", resize);
@@ -145,14 +150,28 @@ export const GridGlowBackground: React.FC<GridGlowBackgroundProps> = ({
 
   return (
     <div
-      className="relative min-h-screen w-full"
-      style={{ backgroundColor }}
+      className="relative w-full"
+      style={{ 
+        backgroundColor,
+        minHeight: "100vh"
+      }}
     >
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 z-0 h-full w-full opacity-50"
+        className="absolute top-0 left-0 z-0 opacity-60"
+        style={{
+          display: "block",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100vw",
+          height: "100vh",
+          pointerEvents: "none"
+        }}
       />
-      <div className="relative z-10 h-full w-full">
+      <div className="relative z-10 w-full">
         {children}
       </div>
     </div>
