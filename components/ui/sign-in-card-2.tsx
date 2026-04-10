@@ -113,9 +113,7 @@ export function SignInCard2() {
   };
 
   return (
-    <div className="min-h-screen w-screen relative overflow-hidden flex items-center justify-center">
-      {/* Removed purple gradients - background is now handled by parent */}
-
+    <div className="w-full flex items-center justify-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

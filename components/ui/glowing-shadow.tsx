@@ -1,284 +1,248 @@
-"use client"
+"use client";
 
-import { type ReactNode } from "react"
+import { useState } from "react";
+import TextEditor from "@/components/TextEditor";
+import ToneSelector from "@/components/ToneSelector";
+import ResultCard from "@/components/ResultCard";
+import PlagiarismScore from "@/components/PlagiarismScore";
+import { GridGlowBackground } from "@/components/ui/grid-glow-background";
+import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
 
-interface GlowingShadowProps {
-  children: ReactNode
-  className?: string
+type WebCheckMeta = {
+  sampledSentenceCount: number;
+  matchedSentenceCount: number;
+  failedSentenceChecks: number;
+  webProvidersUsed: string[];
+  webProvidersFailed: string[];
+  degradedWebCheck: boolean;
+};
+
+type WebScoreBand = {
+  score: number;
+  low: number;
+  high: number;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
-export function GlowingShadow({ children, className = "" }: GlowingShadowProps) {
-   
+export default function HomePage() {
+  const [originalText, setOriginalText] = useState("");
+  const [selectedTone, setSelectedTone] = useState("Formal");
+  const [rewrittenText, setRewrittenText] = useState("");
+  
+  const [isParaphrasing, setIsParaphrasing] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  
+  const [similarityScore, setSimilarityScore] = useState<number | null>(null);
+  const [webScore, setWebScore] = useState<WebScoreBand | null>(null);
+  const [webCheckMeta, setWebCheckMeta] = useState<WebCheckMeta | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleParaphrase = async () => {
+    if (!originalText.trim()) {
+      setError("Please enter some text to paraphrase.");
+      return;
+    }
+    
+    setError(null);
+    setIsParaphrasing(true);
+    setRewrittenText("");
+    setSimilarityScore(null);
+    setWebScore(null);
+    setWebCheckMeta(null);
+
+    try {
+      const response = await fetch("/api/paraphrase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: originalText, tone: selectedTone }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Please login first to use paraphrasing and plagiarism checks.");
+        }
+        throw new Error(data.error || "Failed to paraphrase text");
+      }
+
+      setRewrittenText(data.result);
+      
+      // Now run similarity check
+      checkSimilarity(originalText, data.result, selectedTone);
+      
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "An unexpected error occurred."));
+    } finally {
+      setIsParaphrasing(false);
+    }
+  };
+
+  const checkSimilarity = async (original: string, rewritten: string, tone: string) => {
+    setIsChecking(true);
+    try {
+      const response = await fetch("/api/plagiarism-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ originalText: original, rewrittenText: rewritten }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Please login first to run plagiarism checks.");
+        }
+        throw new Error(data.error || "Plagiarism check failed.");
+      }
+
+      if (data.degradedWebCheck) {
+        setError("Web matching was partially unavailable. Results are best-effort sample indicators.");
+      }
+      
+      setSimilarityScore(data.structuralSimilarityToOriginal);
+      setWebScore(data.webPlagiarismScore);
+      setWebCheckMeta({
+        sampledSentenceCount: data.sampledSentenceCount ?? 0,
+        matchedSentenceCount: data.matchedSentenceCount ?? 0,
+        failedSentenceChecks: data.failedSentenceChecks ?? 0,
+        webProvidersUsed: data.webProvidersUsed ?? [],
+        webProvidersFailed: data.webProvidersFailed ?? [],
+        degradedWebCheck: Boolean(data.degradedWebCheck),
+      });
+
+      // Save to Supabase History if logged in
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { error: insertError } = await supabase.from("paraphrases").insert({
+          user_id: user.id,
+          original_text: original,
+          paraphrased_text: rewritten,
+          tone: tone,
+          similarity_score: data.structuralSimilarityToOriginal,
+          web_score: data.webPlagiarismScore?.score ?? 0,
+        });
+        
+        if (insertError) {
+          console.error("Failed to save history:", insertError.message);
+        }
+      }
+
+    } catch (err: unknown) {
+      console.error("Similarity check error:", err);
+      setError(getErrorMessage(err, "Similarity check failed."));
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   return (
-    <>
-      <style jsx>{`
-        @property --hue {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
-        @property --rotate {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
-        @property --bg-y {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
-        @property --bg-x {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
-        @property --glow-translate-y {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
-        @property --bg-size {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
-        @property --glow-opacity {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
-        @property --glow-blur {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
-        @property --glow-scale {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 2;
-        }
-        @property --glow-radius {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 2;
-        }
-        @property --white-shadow {
-          syntax: "<number>";
-          inherits: true;
-          initial-value: 0;
-        }
+    <GridGlowBackground
+      backgroundColor="#0a0a0a"
+      gridColor="rgba(255, 255, 255, 0.05)"
+      gridSize={50}
+      glowColors={["#4A00E0", "#8E2DE2", "#4A00E0"]}
+      glowCount={10}
+    >
+      <div className="min-h-screen w-full py-12 px-4 sm:px-6 lg:px-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+          className="max-w-4xl mx-auto relative z-10"
+        >
+          <div className="text-center mb-10">
+            <motion.h1 
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.8, type: "spring" }}
+              className="text-4xl font-extrabold tracking-tight sm:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400"
+            >
+              Write Smarter. Paraphrase Faster.
+            </motion.h1>
+            <p className="mt-4 text-xl text-gray-500 dark:text-gray-400 font-light">
+              Rewrite any text in seconds. Control tone, beat plagiarism.
+            </p>
+          </div>
 
-        .glow-wrapper {
-          --card-color: hsl(260deg 100% 3%);
-          --text-color: hsl(260deg 10% 55%);
-          --card-radius: 16px;
-          --border-width: 3px;
-          --bg-size: 1;
-          --hue: 0;
-          --hue-speed: 1;
-          --rotate: 0;
-          --animation-speed: 4s;
-          --interaction-speed: 0.55s;
-          --glow-scale: 1.5;
-          --scale-factor: 1;
-          --glow-blur: 8;
-          --glow-opacity: 0.5;
-          --glow-radius: 100;
-          --glow-rotate-unit: 1deg;
+          {/* Error message container with reserved height to prevent layout shift */}
+          <div className="min-h-[60px]">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="mb-6 p-4 bg-red-400/20 dark:bg-red-600/15 backdrop-blur-lg border-l-4 border-red-500/50 text-red-700 dark:text-red-300 rounded shadow-sm"
+              >
+                <p>{error}</p>
+              </motion.div>
+            )}
+          </div>
 
-          position: relative;
-          display: block;
-          width: 100%;
-        }
+          <div className="bg-white/10 dark:bg-black/30 backdrop-blur-2xl rounded-2xl shadow-2xl dark:shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 dark:border-white/10">
+            <div className="p-6 sm:p-8">
+              <TextEditor 
+                value={originalText} 
+                onChange={setOriginalText}
+                placeholder="Paste your essay, email, or article here..."
+                disabled={isParaphrasing || isChecking}
+              />
 
-        .glow-wrapper:before,
-        .glow-wrapper:after {
-          content: "";
-          display: block;
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border-radius: var(--card-radius);
-        }
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <ToneSelector 
+                  selectedTone={selectedTone} 
+                  onChange={setSelectedTone} 
+                  disabled={isParaphrasing || isChecking}
+                />
+                
+                <button
+                  onClick={handleParaphrase}
+                  disabled={isParaphrasing || isChecking || !originalText.trim()}
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white transform hover:-translate-y-1"
+                >
+                  {isParaphrasing ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Synthesizing...
+                    </>
+                  ) : "Paraphrase Now"}
+                </button>
+              </div>
 
-        .glow-content {
-          position: relative;
-          background: transparent;
-          border-radius: var(--card-radius);
-          display: block;
-          width: 100%;
-        }
+              {/* Results container with minimum height to prevent layout shift */}
+              <div className="mt-10 min-h-[200px]">
+                {(rewrittenText || isParaphrasing) && (
+                  <ResultCard 
+                    originalText={originalText}
+                    text={rewrittenText} 
+                    isLoading={isParaphrasing} 
+                  />
+                )}
+              </div>
 
-        .glow-content:before {
-          content: "";
-          display: block;
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          width: 100%;
-          height: 100%;
-          border-radius: var(--card-radius);
-          box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-          mix-blend-mode: color-dodge;
-          z-index: -1;
-          background: hsl(0deg 0% 16%) radial-gradient(
-            30% 30% at calc(var(--bg-x) * 1%) calc(var(--bg-y) * 1%),
-            hsl(calc(var(--hue) * var(--hue-speed) * 1deg) 100% 70%) calc(0% * var(--bg-size)),
-            hsl(calc(var(--hue) * var(--hue-speed) * 1deg) 100% 60%) calc(20% * var(--bg-size)),
-            hsl(calc(var(--hue) * var(--hue-speed) * 1deg) 100% 40%) calc(40% * var(--bg-size)),
-            transparent 100%
-          );
-          animation: hue-animation var(--animation-speed) linear infinite,
-                     rotate-bg var(--animation-speed) linear infinite;
-          transition: --bg-size var(--interaction-speed) ease;
-          pointer-events: none;
-        }
-
-        .glow {
-          --glow-translate-y: 0;
-          display: block;
-          position: absolute;
-          width: 100px;
-          height: 100px;
-          animation: rotate var(--animation-speed) linear infinite;
-          transform: rotateZ(calc(var(--rotate) * var(--glow-rotate-unit)));
-          transform-origin: center;
-          border-radius: calc(var(--glow-radius) * 10vw);
-          pointer-events: none;
-          top: 50%;
-          left: 50%;
-          margin: -50px 0 0 -50px;
-          z-index: 1;
-        }
-
-        .glow:after {
-          content: "";
-          display: block;
-          z-index: -2;
-          filter: blur(calc(var(--glow-blur) * 10px));
-          width: 130%;
-          height: 130%;
-          left: -15%;
-          top: -15%;
-          background: hsl(calc(var(--hue) * var(--hue-speed) * 1deg) 100% 60%);
-          position: relative;
-          border-radius: calc(var(--glow-radius) * 10vw);
-          animation: hue-animation var(--animation-speed) linear infinite;
-          transform: scaleY(calc(var(--glow-scale) * var(--scale-factor) / 1.1))
-                     scaleX(calc(var(--glow-scale) * var(--scale-factor) * 1.2))
-                     translateY(calc(var(--glow-translate-y) * 1%));
-          opacity: var(--glow-opacity);
-        }
-
-        .glow-wrapper:hover .glow-content {
-          --text-color: white;
-          box-shadow: 0 0 calc(var(--white-shadow) * 1vw) calc(var(--white-shadow) * 0.15vw) rgb(255 255 255 / 20%);
-          animation: shadow-pulse calc(var(--animation-speed) * 2) linear infinite;
-          /* FIXED: removed mix-blend-mode: darken on hover too */
-        }
-
-        .glow-wrapper:hover .glow-content:before {
-          --bg-size: 15;
-          animation-play-state: paused;
-          transition: --bg-size var(--interaction-speed) ease;
-        }
-
-        .glow-wrapper:hover .glow {
-          --glow-blur: 1.5;
-          --glow-opacity: 1;
-          --glow-scale: 2.5;
-          --glow-radius: 0;
-          --rotate: 900;
-          --glow-rotate-unit: 0;
-          --scale-factor: 1.25;
-          animation-play-state: paused;
-        }
-
-        .glow-wrapper:hover .glow:after {
-          --glow-translate-y: 0;
-          animation-play-state: paused;
-          transition: --glow-translate-y 0s ease, --glow-blur 0.05s ease,
-                      --glow-opacity 0.05s ease, --glow-scale 0.05s ease,
-                      --glow-radius 0.05s ease;
-        }
-
-        @keyframes shadow-pulse {
-          0%, 24%, 46%, 73%, 96% {
-            --white-shadow: 0.5;
-          }
-          12%, 28%, 41%, 63%, 75%, 82%, 98% {
-            --white-shadow: 2.5;
-          }
-          6%, 32%, 57% {
-            --white-shadow: 1.3;
-          }
-          18%, 52%, 88% {
-            --white-shadow: 3.5;
-          }
-        }
-
-        @keyframes rotate-bg {
-          0% {
-            --bg-x: 0;
-            --bg-y: 0;
-          }
-          25% {
-            --bg-x: 100;
-            --bg-y: 0;
-          }
-          50% {
-            --bg-x: 100;
-            --bg-y: 100;
-          }
-          75% {
-            --bg-x: 0;
-            --bg-y: 100;
-          }
-          100% {
-            --bg-x: 0;
-            --bg-y: 0;
-          }
-        }
-
-        @keyframes rotate {
-          from {
-            --rotate: -70;
-            --glow-translate-y: -65;
-          }
-          25% {
-            --glow-translate-y: -65;
-          }
-          50% {
-            --glow-translate-y: -65;
-          }
-          60%, 75% {
-            --glow-translate-y: -65;
-          }
-          85% {
-            --glow-translate-y: -65;
-          }
-          to {
-            --rotate: calc(360 - 70);
-            --glow-translate-y: -65;
-          }
-        }
-
-        @keyframes hue-animation {
-          0% {
-            --hue: 0;
-          }
-          100% {
-            --hue: 360;
-          }
-        }
-      `}</style>
-
-      <div className={`glow-wrapper ${className}`}>
-        <span className="glow"></span>
-        <div className="glow-content">{children}</div>
+              {/* Plagiarism score container with minimum height */}
+              <div className="min-h-[180px]">
+                {(similarityScore !== null || isChecking) && (
+                  <PlagiarismScore
+                    score={similarityScore}
+                    webScore={webScore}
+                    webCheckMeta={webCheckMeta}
+                    isChecking={isChecking}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
-    </>
-  )
+    </GridGlowBackground>
+  );
 }
