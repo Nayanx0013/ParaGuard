@@ -12,7 +12,7 @@ import {
 } from "@/lib/validation/schemas";
 import { createHash } from "node:crypto";
 
-type SearchProviderName = "serper" | "brave" | "duckduckgo";
+type SearchProviderName = "serper" | "searlo" | "tavily" | "duckduckgo";
 
 type ProviderSearchResult = {
   provider: SearchProviderName;
@@ -46,46 +46,45 @@ type CacheEntry = {
   payload: PlagiarismResponsePayload;
 };
 
-// ─── In-memory quota tracker ──────────────────────────────────────────────────
-// Tracks per-provider quota exhaustion so we skip providers that are known
-// to be rate-limited until the reset window passes.
+// ─── Quota tracker ────────────────────────────────────────────────────────────
+// Remembers which providers hit their quota limit so we skip them
+// automatically for 1 hour instead of wasting time on failed requests.
 type QuotaState = {
   exhausted: boolean;
-  resetAt: number; // epoch ms when quota window resets
+  resetAt: number;
 };
 
 const providerQuota: Record<SearchProviderName, QuotaState> = {
   serper:     { exhausted: false, resetAt: 0 },
-  brave:      { exhausted: false, resetAt: 0 },
-  duckduckgo: { exhausted: false, resetAt: 0 }, // DDG has no quota limit
+  searlo:     { exhausted: false, resetAt: 0 },
+  tavily:     { exhausted: false, resetAt: 0 },
+  duckduckgo: { exhausted: false, resetAt: 0 }, // no quota — always available
 };
 
-// How long to skip a provider after it signals quota exhaustion (1 hour).
-const QUOTA_BACKOFF_MS = 60 * 60 * 1000;
+const QUOTA_BACKOFF_MS = 60 * 60 * 1000; // 1 hour
 
 function markProviderExhausted(provider: SearchProviderName) {
   providerQuota[provider].exhausted = true;
   providerQuota[provider].resetAt = Date.now() + QUOTA_BACKOFF_MS;
   console.warn(
-    `[plagiarism] Provider "${provider}" marked quota-exhausted until ${new Date(providerQuota[provider].resetAt).toISOString()}`
+    `[plagiarism] "${provider}" quota exhausted — skipping until ${new Date(providerQuota[provider].resetAt).toISOString()}`
   );
 }
 
 function isProviderAvailable(provider: SearchProviderName): boolean {
   const state = providerQuota[provider];
   if (!state.exhausted) return true;
-  // Auto-recover after backoff window.
   if (Date.now() >= state.resetAt) {
     state.exhausted = false;
     state.resetAt = 0;
-    console.info(`[plagiarism] Provider "${provider}" quota reset — retrying.`);
+    console.info(`[plagiarism] "${provider}" quota reset — retrying.`);
     return true;
   }
   return false;
 }
 
 function isQuotaError(status: number): boolean {
-  // 429 = Too Many Requests, 402 = Payment Required (Serper quota exceeded)
+  // 429 = Too Many Requests, 402 = Payment Required (quota exceeded)
   return status === 429 || status === 402;
 }
 
@@ -112,7 +111,11 @@ function cleanupCache(now: number) {
   }
 }
 
-function buildCacheKey(userId: string, originalText: string, rewrittenText: string): string {
+function buildCacheKey(
+  userId: string,
+  originalText: string,
+  rewrittenText: string
+): string {
   return createHash("sha256")
     .update(userId)
     .update("|")
@@ -131,7 +134,10 @@ function normalizeWords(text: string): string[] {
     .filter((word) => word.length > 2);
 }
 
-function calculateWordOverlapRatio(sentenceWords: string[], snippetWords: string[]): number {
+function calculateWordOverlapRatio(
+  sentenceWords: string[],
+  snippetWords: string[]
+): number {
   if (!sentenceWords.length) return 0;
   const snippetSet = new Set(snippetWords);
   let matches = 0;
@@ -146,14 +152,16 @@ const SEARCH_HEADERS = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 };
 
-// ─── Provider: Serper (Primary) ───────────────────────────────────────────────
+// ─── Provider 1: Serper ───────────────────────────────────────────────────────
+// 2,500 free searches/month — no credit card — real Google results
+// Sign up: https://serper.dev
 async function searchSerper(query: string): Promise<ProviderSearchResult> {
   const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey || !isProviderAvailable("serper")) {
-    throw Object.assign(new Error("Serper unavailable or quota exhausted"), {
-      provider: "serper" as const,
-      skipFallbackLog: true,
-    });
+    throw Object.assign(
+      new Error("Serper unavailable or quota exhausted"),
+      { provider: "serper" as const, skipLog: true }
+    );
   }
 
   const response = await fetch("https://google.serper.dev/search", {
@@ -165,15 +173,17 @@ async function searchSerper(query: string): Promise<ProviderSearchResult> {
 
   if (isQuotaError(response.status)) {
     markProviderExhausted("serper");
-    throw Object.assign(new Error(`Serper quota exhausted (${response.status})`), {
-      provider: "serper" as const,
-    });
+    throw Object.assign(
+      new Error(`Serper quota exhausted (${response.status})`),
+      { provider: "serper" as const }
+    );
   }
 
   if (!response.ok) {
-    throw Object.assign(new Error(`Serper failed: ${response.status}`), {
-      provider: "serper" as const,
-    });
+    throw Object.assign(
+      new Error(`Serper error: ${response.status}`),
+      { provider: "serper" as const }
+    );
   }
 
   const data = (await response.json()) as {
@@ -193,63 +203,139 @@ async function searchSerper(query: string): Promise<ProviderSearchResult> {
 
   return {
     provider: "serper",
-    snippets: snippets.map((s) => s.trim()).filter((s) => s.length > 0),
+    snippets: snippets.map((s) => s.trim()).filter(Boolean),
   };
 }
 
-// ─── Provider: Brave (Secondary) ─────────────────────────────────────────────
-async function searchBrave(query: string): Promise<ProviderSearchResult> {
-  const apiKey = process.env.BRAVE_SEARCH_API_KEY;
-  if (!apiKey || !isProviderAvailable("brave")) {
-    throw Object.assign(new Error("Brave unavailable or quota exhausted"), {
-      provider: "brave" as const,
-      skipFallbackLog: true,
-    });
+// ─── Provider 2: Searlo ───────────────────────────────────────────────────────
+// 3,000 free credits/month — no credit card — full SERP data
+// Sign up: https://dashboard.searlo.tech
+async function searchSearlo(query: string): Promise<ProviderSearchResult> {
+  const apiKey = process.env.SEARLO_API_KEY;
+  if (!apiKey || !isProviderAvailable("searlo")) {
+    throw Object.assign(
+      new Error("Searlo unavailable or quota exhausted"),
+      { provider: "searlo" as const, skipLog: true }
+    );
   }
 
   const response = await fetch(
-    `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10`,
+    `https://api.searlo.tech/search?q=${encodeURIComponent(query)}&num=10`,
     {
       headers: {
-        Accept: "application/json",
-        "Accept-Encoding": "gzip",
-        "X-Subscription-Token": apiKey,
+        "Authorization": `Bearer ${apiKey}`,
+        "Accept": "application/json",
       },
       signal: AbortSignal.timeout(10000),
     }
   );
 
   if (isQuotaError(response.status)) {
-    markProviderExhausted("brave");
-    throw Object.assign(new Error(`Brave quota exhausted (${response.status})`), {
-      provider: "brave" as const,
-    });
+    markProviderExhausted("searlo");
+    throw Object.assign(
+      new Error(`Searlo quota exhausted (${response.status})`),
+      { provider: "searlo" as const }
+    );
   }
 
   if (!response.ok) {
-    throw Object.assign(new Error(`Brave failed: ${response.status}`), {
-      provider: "brave" as const,
-    });
+    throw Object.assign(
+      new Error(`Searlo error: ${response.status}`),
+      { provider: "searlo" as const }
+    );
   }
 
   const data = (await response.json()) as {
-    web?: { results?: Array<{ description?: string; title?: string }> };
+    organic_results?: Array<{ snippet?: string; title?: string }>;
+    answer_box?: { snippet?: string; answer?: string };
+    featured_snippet?: { content?: string };
   };
 
   const snippets: string[] = [];
-  data.web?.results?.forEach((r) => {
-    if (r.description) snippets.push(r.description);
+  if (data.answer_box?.snippet) snippets.push(data.answer_box.snippet);
+  if (data.answer_box?.answer) snippets.push(data.answer_box.answer);
+  if (data.featured_snippet?.content) snippets.push(data.featured_snippet.content);
+  data.organic_results?.forEach((r) => {
+    if (r.snippet) snippets.push(r.snippet);
     if (r.title) snippets.push(r.title);
   });
 
   return {
-    provider: "brave",
-    snippets: snippets.map((s) => s.trim()).filter((s) => s.length > 0),
+    provider: "searlo",
+    snippets: snippets.map((s) => s.trim()).filter(Boolean),
   };
 }
 
-// ─── Provider: DuckDuckGo (Last resort, always free, no key needed) ───────────
+// ─── Provider 3: Tavily ───────────────────────────────────────────────────────
+// 1,000 free searches/month — no credit card — AI-optimized results
+// Sign up: https://tavily.com
+async function searchTavily(query: string): Promise<ProviderSearchResult> {
+  const apiKey = process.env.TAVILY_API_KEY;
+  if (!apiKey || !isProviderAvailable("tavily")) {
+    throw Object.assign(
+      new Error("Tavily unavailable or quota exhausted"),
+      { provider: "tavily" as const, skipLog: true }
+    );
+  }
+
+  const response = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      query,
+      search_depth: "basic",
+      max_results: 10,
+      include_answer: false,
+    }),
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (isQuotaError(response.status)) {
+    markProviderExhausted("tavily");
+    throw Object.assign(
+      new Error(`Tavily quota exhausted (${response.status})`),
+      { provider: "tavily" as const }
+    );
+  }
+
+  if (!response.ok) {
+    throw Object.assign(
+      new Error(`Tavily error: ${response.status}`),
+      { provider: "tavily" as const }
+    );
+  }
+
+  const data = (await response.json()) as {
+    results?: Array<{ content?: string; title?: string }>;
+    answer?: string;
+  };
+
+  const snippets: string[] = [];
+  if (data.answer) snippets.push(data.answer);
+  data.results?.forEach((r) => {
+    if (r.content) snippets.push(r.content);
+    if (r.title) snippets.push(r.title);
+  });
+
+  return {
+    provider: "tavily",
+    snippets: snippets.map((s) => s.trim()).filter(Boolean),
+  };
+}
+
+// ─── Provider 4: DuckDuckGo ───────────────────────────────────────────────────
+// Unlimited — no key needed — last resort fallback
 async function searchDuckDuckGo(query: string): Promise<ProviderSearchResult> {
+  if (!isProviderAvailable("duckduckgo")) {
+    throw Object.assign(
+      new Error("DuckDuckGo temporarily unavailable"),
+      { provider: "duckduckgo" as const }
+    );
+  }
+
   const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
   const response = await fetch(url, {
     signal: AbortSignal.timeout(10000),
@@ -257,9 +343,10 @@ async function searchDuckDuckGo(query: string): Promise<ProviderSearchResult> {
   });
 
   if (!response.ok) {
-    throw Object.assign(new Error(`DuckDuckGo failed: ${response.status}`), {
-      provider: "duckduckgo" as const,
-    });
+    throw Object.assign(
+      new Error(`DuckDuckGo error: ${response.status}`),
+      { provider: "duckduckgo" as const }
+    );
   }
 
   const data = (await response.json()) as {
@@ -280,52 +367,61 @@ async function searchDuckDuckGo(query: string): Promise<ProviderSearchResult> {
 
   return {
     provider: "duckduckgo",
-    snippets: snippets.map((s) => s.trim()).filter((s) => s.length > 0),
+    snippets: snippets.map((s) => s.trim()).filter(Boolean),
   };
 }
 
-// ─── Fallback chain: Serper → Brave → DuckDuckGo ─────────────────────────────
-// Tries each provider in order. Moves to next only if current is unavailable,
-// quota-exhausted, or errors. Stops as soon as one succeeds.
+// ─── Fallback chain: Serper → Searlo → Tavily → DuckDuckGo ───────────────────
 //
-//  Flow:
-//   Serper available + has key?  → use Serper  ✅
-//   Serper quota hit (429/402)?  → mark exhausted, try Brave
-//   Brave available + has key?   → use Brave   ✅
-//   Brave quota hit (429/402)?   → mark exhausted, try DuckDuckGo
-//   DuckDuckGo?                  → always tried, no quota  ✅
-//   All fail?                    → throw error
+//  Total free quota:
+//   Serper:     2,500/month  →  500 checks
+//   Searlo:     3,000/month  →  600 checks
+//   Tavily:     1,000/month  →  200 checks
+//   DuckDuckGo: unlimited    →  ∞ checks (weaker results)
+//
+//  Combined paid API checks before DDG kicks in: ~1,300/month free
+//
+//  Logic:
+//   - Try each provider in order
+//   - If no API key set → skip silently (no crash)
+//   - If quota hit (429/402) → mark exhausted for 1 hour, try next
+//   - If network error → log warning, try next
+//   - Stop as soon as one provider succeeds
+//   - DuckDuckGo always runs as the final fallback (no key, no quota)
 async function searchWithFallback(query: string): Promise<ProviderSearchResult> {
   const providers: Array<() => Promise<ProviderSearchResult>> = [
-    () => searchSerper(query),
-    () => searchBrave(query),
-    () => searchDuckDuckGo(query),
+    () => searchSerper(query),    // 1st: 2,500 free/month
+    () => searchSearlo(query),    // 2nd: 3,000 free/month
+    () => searchTavily(query),    // 3rd: 1,000 free/month
+    () => searchDuckDuckGo(query), // 4th: unlimited, no key needed
   ];
 
   let lastError: Error | null = null;
 
   for (const providerFn of providers) {
     try {
-      const result = await providerFn();
-      return result; // ✅ First success wins, chain stops here
+      return await providerFn(); // ✅ success — stop here
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       const provider = (err as { provider?: SearchProviderName })?.provider ?? "unknown";
-      const skipLog = (err as { skipFallbackLog?: boolean })?.skipFallbackLog;
+      const skipLog = (err as { skipLog?: boolean })?.skipLog;
       if (!skipLog) {
         console.warn(
-          `[plagiarism] "${provider}" failed, trying next provider. Reason: ${lastError.message}`
+          `[plagiarism] "${provider}" failed → trying next. Reason: ${lastError.message}`
         );
       }
-      // Continue to next provider in chain
     }
   }
 
-  throw new Error(`All search providers exhausted. Last error: ${lastError?.message}`);
+  throw new Error(
+    `All search providers exhausted. Last error: ${lastError?.message}`
+  );
 }
 
 // ─── Sentence web check ───────────────────────────────────────────────────────
-async function checkSentenceOnWeb(sentence: string): Promise<SentenceWebCheckResult> {
+async function checkSentenceOnWeb(
+  sentence: string
+): Promise<SentenceWebCheckResult> {
   const sentenceWords = sentence.split(/\s+/).filter(Boolean);
   const query = sentenceWords.slice(0, 14).join(" ");
 
@@ -362,13 +458,19 @@ async function checkSentenceOnWeb(sentence: string): Promise<SentenceWebCheckRes
       return { matched: true, successfulProviders, failedProviders };
     }
 
-    const sharedImportantWords = importantWords.filter((w) => snippetWords.includes(w));
+    const sharedImportantWords = importantWords.filter((w) =>
+      snippetWords.includes(w)
+    );
     if (sharedImportantWords.length >= 4 && overlap >= 0.2) {
       return { matched: true, successfulProviders, failedProviders };
     }
   }
 
-  return { matched: bestOverlap >= 0.25, successfulProviders, failedProviders };
+  return {
+    matched: bestOverlap >= 0.25,
+    successfulProviders,
+    failedProviders,
+  };
 }
 
 // ─── POST Handler ─────────────────────────────────────────────────────────────
@@ -382,7 +484,10 @@ export async function POST(request: Request) {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: "Authentication required. Please sign in to run plagiarism checks." },
+        {
+          error:
+            "Authentication required. Please sign in to run plagiarism checks.",
+        },
         { status: 401 }
       );
     }
@@ -404,14 +509,21 @@ export async function POST(request: Request) {
     const now = Date.now();
     cleanupCache(now);
 
-    const cacheKey = buildCacheKey(user.id, normalizedOriginalText, normalizedRewrittenText);
+    const cacheKey = buildCacheKey(
+      user.id,
+      normalizedOriginalText,
+      normalizedRewrittenText
+    );
     const cached = resultCache.get(cacheKey);
     if (cached && cached.expiresAt > now) {
       return NextResponse.json({ ...cached.payload, cacheHit: true });
     }
 
-    // 1. Structural similarity check
-    const structureScore = calculateSimilarityScore(normalizedOriginalText, normalizedRewrittenText);
+    // 1. Structural similarity
+    const structureScore = calculateSimilarityScore(
+      normalizedOriginalText,
+      normalizedRewrittenText
+    );
 
     // 2. Web plagiarism check on sampled sentences
     const sentences = getSentences(normalizedRewrittenText);
@@ -440,10 +552,13 @@ export async function POST(request: Request) {
         }
       }
 
-      webPlagiarismScore = calculateWebPlagiarismScore(foundMatches, sampledSentenceCount);
+      webPlagiarismScore = calculateWebPlagiarismScore(
+        foundMatches,
+        sampledSentenceCount
+      );
     }
 
-    // Only flag as degraded if majority of sentence checks failed
+    // Only flag degraded if majority of checks failed
     const degradedWebCheck = failedSentenceChecks > sampledSentenceCount / 2;
 
     const responseMessage = degradedWebCheck
@@ -475,7 +590,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ...responsePayload, cacheHit: false });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Internal Server Error";
+    const message =
+      error instanceof Error ? error.message : "Internal Server Error";
     console.error("Plagiarism API caught error:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }

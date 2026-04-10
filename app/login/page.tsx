@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import SignInCard2 from "@/components/ui/sign-in-card-2";
+import { DottedSurface } from "@/components/ui/dotted-surface";
 
 export default function Login() {
   const router = useRouter();
@@ -21,5 +22,12 @@ export default function Login() {
     checkAuth();
   }, [router]);
 
-  return <SignInCard2 />;
+  return (
+    <div className="relative min-h-screen w-full">
+      <DottedSurface />
+      <div className="relative z-10 flex min-h-screen items-center justify-center">
+        <SignInCard2 />
+      </div>
+    </div>
+  );
 }
