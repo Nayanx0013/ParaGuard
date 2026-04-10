@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,40 +14,10 @@ import {
 } from "@/components/ui/dialog";
 
 export default function TocDialog() {
-  const [hasReadToBottom, setHasReadToBottom] = useState(false);
   const [open, setOpen] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  const evaluateReadState = () => {
-    const content = contentRef.current;
-    if (!content) return;
-
-    const maxScrollTop = content.scrollHeight - content.clientHeight;
-    const reachedBottom = maxScrollTop <= 1 || content.scrollTop >= maxScrollTop - 8;
-    if (reachedBottom) {
-      setHasReadToBottom(true);
-    }
-  };
-
-  // Re-evaluate every time dialog opens
-  useEffect(() => {
-    if (!open) return;
-    const timer = setTimeout(() => {
-      evaluateReadState();
-    }, 150); // slight delay to ensure DOM is ready
-    return () => clearTimeout(timer);
-  }, [open]);
-
-  const handleScroll = () => {
-    if (hasReadToBottom) return;
-    evaluateReadState();
-  };
 
   return (
-    <Dialog open={open} onOpenChange={(val) => {
-      setOpen(val);
-      if (!val) setHasReadToBottom(false); // reset on close
-    }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="link" className="underline hover:no-underline px-1 py-0 h-auto">
           Terms & Conditions
@@ -59,11 +29,7 @@ export default function TocDialog() {
             Terms & Conditions
           </DialogTitle>
         </DialogHeader>
-        <div
-          ref={contentRef}
-          onScroll={handleScroll}
-          className="min-h-0 flex-1 overflow-y-auto"
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <DialogDescription asChild>
             <div className="px-6 py-4">
               <div className="[&_strong]:text-gray-900 dark:[&_strong]:text-gray-100 space-y-4 [&_strong]:font-semibold">
@@ -104,18 +70,11 @@ export default function TocDialog() {
           </DialogDescription>
         </div>
         <DialogFooter className="border-t px-6 py-4 sm:items-center">
-          {!hasReadToBottom && (
-            <span className="text-gray-500 grow text-xs max-sm:text-center">
-              Scroll down to read all terms before accepting.
-            </span>
-          )}
           <DialogClose asChild>
             <Button type="button" variant="outline">Cancel</Button>
           </DialogClose>
           <DialogClose asChild>
-            <Button type="button" disabled={!hasReadToBottom}>
-              I agree
-            </Button>
+            <Button type="button">I agree</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
