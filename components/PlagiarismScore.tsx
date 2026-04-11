@@ -93,7 +93,7 @@ export default function PlagiarismScore({ score, webScore, webCheckMeta, isCheck
   const RiskIcon = riskLevel.icon;
   
   return (
-    <GlowingShadow className="w-full">
+    <GlowingShadow className="w-full" intensity="reduced">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

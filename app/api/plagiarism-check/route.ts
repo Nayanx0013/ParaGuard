@@ -47,8 +47,6 @@ type CacheEntry = {
 };
 
 // ─── Quota tracker ────────────────────────────────────────────────────────────
-// Remembers which providers hit their quota limit so we skip them
-// automatically for 1 hour instead of wasting time on failed requests.
 type QuotaState = {
   exhausted: boolean;
   resetAt: number;
@@ -58,7 +56,7 @@ const providerQuota: Record<SearchProviderName, QuotaState> = {
   serper:     { exhausted: false, resetAt: 0 },
   searlo:     { exhausted: false, resetAt: 0 },
   tavily:     { exhausted: false, resetAt: 0 },
-  duckduckgo: { exhausted: false, resetAt: 0 }, // no quota — always available
+  duckduckgo: { exhausted: false, resetAt: 0 },
 };
 
 const QUOTA_BACKOFF_MS = 60 * 60 * 1000; // 1 hour
@@ -84,7 +82,6 @@ function isProviderAvailable(provider: SearchProviderName): boolean {
 }
 
 function isQuotaError(status: number): boolean {
-  // 429 = Too Many Requests, 402 = Payment Required (quota exceeded)
   return status === 429 || status === 402;
 }
 
@@ -153,8 +150,6 @@ const SEARCH_HEADERS = {
 };
 
 // ─── Provider 1: Serper ───────────────────────────────────────────────────────
-// 2,500 free searches/month — no credit card — real Google results
-// Sign up: https://serper.dev
 async function searchSerper(query: string): Promise<ProviderSearchResult> {
   const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey || !isProviderAvailable("serper")) {
@@ -208,8 +203,6 @@ async function searchSerper(query: string): Promise<ProviderSearchResult> {
 }
 
 // ─── Provider 2: Searlo ───────────────────────────────────────────────────────
-// 3,000 free credits/month — no credit card — full SERP data
-// Sign up: https://dashboard.searlo.tech
 async function searchSearlo(query: string): Promise<ProviderSearchResult> {
   const apiKey = process.env.SEARLO_API_KEY;
   if (!apiKey || !isProviderAvailable("searlo")) {
@@ -267,8 +260,6 @@ async function searchSearlo(query: string): Promise<ProviderSearchResult> {
 }
 
 // ─── Provider 3: Tavily ───────────────────────────────────────────────────────
-// 1,000 free searches/month — no credit card — AI-optimized results
-// Sign up: https://tavily.com
 async function searchTavily(query: string): Promise<ProviderSearchResult> {
   const apiKey = process.env.TAVILY_API_KEY;
   if (!apiKey || !isProviderAvailable("tavily")) {
@@ -327,7 +318,6 @@ async function searchTavily(query: string): Promise<ProviderSearchResult> {
 }
 
 // ─── Provider 4: DuckDuckGo ───────────────────────────────────────────────────
-// Unlimited — no key needed — last resort fallback
 async function searchDuckDuckGo(query: string): Promise<ProviderSearchResult> {
   if (!isProviderAvailable("duckduckgo")) {
     throw Object.assign(
@@ -371,36 +361,20 @@ async function searchDuckDuckGo(query: string): Promise<ProviderSearchResult> {
   };
 }
 
-// ─── Fallback chain: Serper → Searlo → Tavily → DuckDuckGo ───────────────────
-//
-//  Total free quota:
-//   Serper:     2,500/month  →  500 checks
-//   Searlo:     3,000/month  →  600 checks
-//   Tavily:     1,000/month  →  200 checks
-//   DuckDuckGo: unlimited    →  ∞ checks (weaker results)
-//
-//  Combined paid API checks before DDG kicks in: ~1,300/month free
-//
-//  Logic:
-//   - Try each provider in order
-//   - If no API key set → skip silently (no crash)
-//   - If quota hit (429/402) → mark exhausted for 1 hour, try next
-//   - If network error → log warning, try next
-//   - Stop as soon as one provider succeeds
-//   - DuckDuckGo always runs as the final fallback (no key, no quota)
+// ─── Fallback chain ───────────────────────────────────────────────────────────
 async function searchWithFallback(query: string): Promise<ProviderSearchResult> {
   const providers: Array<() => Promise<ProviderSearchResult>> = [
-    () => searchSerper(query),    // 1st: 2,500 free/month
-    () => searchSearlo(query),    // 2nd: 3,000 free/month
-    () => searchTavily(query),    // 3rd: 1,000 free/month
-    () => searchDuckDuckGo(query), // 4th: unlimited, no key needed
+    () => searchSerper(query),
+    () => searchSearlo(query),
+    () => searchTavily(query),
+    () => searchDuckDuckGo(query),
   ];
 
   let lastError: Error | null = null;
 
   for (const providerFn of providers) {
     try {
-      return await providerFn(); // ✅ success — stop here
+      return await providerFn();
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       const provider = (err as { provider?: SearchProviderName })?.provider ?? "unknown";
@@ -442,7 +416,9 @@ async function checkSentenceOnWeb(
 
   const targetWords = normalizeWords(sentence);
   const exactNormalizedSentence = targetWords.join(" ");
-  const importantWords = targetWords.filter((word) => word.length > 4);
+
+  // Only flag important/distinctive words (length > 5 filters out common short words)
+  const importantWords = targetWords.filter((word) => word.length > 5);
 
   let bestOverlap = 0;
   for (const snippet of snippets) {
@@ -450,24 +426,27 @@ async function checkSentenceOnWeb(
     const overlap = calculateWordOverlapRatio(targetWords, snippetWords);
     if (overlap > bestOverlap) bestOverlap = overlap;
 
+    // FIXED: Only match if 50+ char phrase found verbatim in snippet
     const snippetNormalized = snippetWords.join(" ");
     if (
-      exactNormalizedSentence.length > 20 &&
+      exactNormalizedSentence.length > 50 &&
       snippetNormalized.includes(exactNormalizedSentence.slice(0, 50))
     ) {
       return { matched: true, successfulProviders, failedProviders };
     }
 
+    // FIXED: Raised from 4 shared words + 20% overlap → 6 shared words + 55% overlap
     const sharedImportantWords = importantWords.filter((w) =>
       snippetWords.includes(w)
     );
-    if (sharedImportantWords.length >= 4 && overlap >= 0.2) {
+    if (sharedImportantWords.length >= 6 && overlap >= 0.55) {
       return { matched: true, successfulProviders, failedProviders };
     }
   }
 
+  // FIXED: Raised final threshold from 0.25 → 0.6 to eliminate false positives
   return {
-    matched: bestOverlap >= 0.25,
+    matched: bestOverlap >= 0.6,
     successfulProviders,
     failedProviders,
   };
@@ -558,7 +537,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only flag degraded if majority of checks failed
     const degradedWebCheck = failedSentenceChecks > sampledSentenceCount / 2;
 
     const responseMessage = degradedWebCheck

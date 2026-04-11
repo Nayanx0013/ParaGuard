@@ -5,9 +5,10 @@ import { type ReactNode, useState, useRef, useEffect } from "react"
 interface GlowingShadowProps {
   children: ReactNode
   className?: string
+  intensity?: "normal" | "reduced"
 }
 
-export function GlowingShadow({ children, className = "" }: GlowingShadowProps) {
+export function GlowingShadow({ children, className = "", intensity = "normal" }: GlowingShadowProps) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -200,9 +201,17 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
           opacity: 0.25;
         }
 
+        .glow-wrapper[data-intensity="reduced"] .glow:after {
+          opacity: 0.12;
+        }
+
         .glow-wrapper:hover .glow-content {
           --text-color: white;
           box-shadow: 0 0 calc(var(--white-shadow) * 0.5vw) calc(var(--white-shadow) * 0.1vw) rgb(255 255 255 / 10%);
+        }
+
+        .glow-wrapper[data-intensity="reduced"]:hover .glow-content:after {
+          opacity: 0.15;
         }
 
         .glow-wrapper:hover .glow-content:before {
@@ -292,7 +301,11 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
         }
       `}</style>
 
-      <div className={`glow-wrapper ${className}`} ref={wrapperRef} style={{ '--glow-pos-x': `${mousePos.x}`, '--glow-pos-y': `${mousePos.y}` } as React.CSSProperties}>
+      <div 
+        className={`glow-wrapper ${className}`} 
+        ref={wrapperRef} 
+        data-intensity={intensity}
+        style={{ '--glow-pos-x': `${mousePos.x}`, '--glow-pos-y': `${mousePos.y}` } as React.CSSProperties}>
         <span className="glow"></span>
         <div className="glow-content">{children}</div>
       </div>
