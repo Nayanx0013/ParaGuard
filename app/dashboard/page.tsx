@@ -2,13 +2,17 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { Orbitron } from "next/font/google";
 import { FileText, Type, Percent, Calendar, Copy, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GridGlowBackground } from "@/components/ui/grid-glow-background";
 import { GlowingShadow } from "@/components/ui/glowing-shadow";
 import { Component as DashboardLoader } from "@/components/ui/loader-3";
+import { LogOut } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+
+const orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 type ParaphraseHistory = {
   id: string;
@@ -80,17 +84,60 @@ export default function Dashboard() {
             className="mb-10 flex flex-col md:flex-row justify-between md:items-end gap-4"
           >
             <div>
-              <h1 className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+              {/* Orbitron title */}
+              <h1
+                className={`${orbitron.className} text-4xl font-extrabold`}
+                style={{
+                  background: "linear-gradient(90deg, #a855f7, #06b6d4)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
                 Your Dashboard
               </h1>
-              <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 border dark:border-gray-800 px-4 py-1.5 rounded-full bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm inline-block shadow-sm">
-                Logged in as <span className="font-bold text-gray-900 dark:text-gray-100">{user?.email}</span>
-              </p>
+
+              {/* Email — glowing pill */}
+              <div className="mt-3 group relative inline-flex items-center gap-2 border-2 border-purple-500/70 rounded-full px-5 h-9
+                              backdrop-blur-sm overflow-hidden">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-cyan-500/0" />
+                <span className="relative z-10 text-sm font-medium text-gray-300">
+                  {user?.email}
+                </span>
+                <span className="relative z-10 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50">
+                  <div className="absolute inset-0 rounded-full bg-cyan-400 animate-ping opacity-60"
+                    style={{ animationDuration: "2s" }} />
+                </span>
+              </div>
             </div>
             
+            {/* Sign Out — glowing pill red */}
             <form action="/auth/signout" method="post">
-              <button className="px-6 py-2.5 border border-gray-300 dark:border-gray-700 rounded-full bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-all shadow-sm">
-                Sign Out
+              <button
+                type="submit"
+                className="group relative flex items-center gap-2 border-2 border-purple-500/70 rounded-full px-5 h-10
+                           transition-all duration-500 ease-out
+                           hover:border-red-400 hover:shadow-lg hover:shadow-red-500/40
+                           hover:scale-105 active:scale-95 overflow-hidden backdrop-blur-sm
+                           before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent
+                           before:via-white/5 before:to-transparent before:translate-x-[-100%]
+                           hover:before:translate-x-[100%] before:transition-transform before:duration-700"
+              >
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-red-500/0 via-red-500/10 to-red-500/0
+                                opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <LogOut size={14} className="relative z-10 text-cyan-400 group-hover:text-red-400 transition-colors duration-300" />
+                <span className="text-white font-medium tracking-wide text-sm transition-all duration-300
+                                 group-hover:text-red-300 relative z-10">
+                  Sign Out
+                </span>
+                <span className="relative z-10 w-3 h-3 bg-red-400 rounded-full transition-all duration-500 ease-out
+                                 group-hover:bg-red-300 group-hover:shadow-lg group-hover:shadow-red-400/50 group-hover:scale-110">
+                  <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-0 group-hover:opacity-60"
+                    style={{ animationDuration: "2s" }} />
+                </span>
+                <div className="absolute inset-0 rounded-full border-2 border-red-400/0
+                                group-hover:border-red-400/30 transition-all duration-500
+                                opacity-0 group-hover:opacity-100" />
               </button>
             </form>
           </motion.div>
@@ -102,12 +149,12 @@ export default function Dashboard() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="bg-white/80 dark:bg-[#111] backdrop-blur-md p-16 text-center rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 flex flex-col items-center"
               >
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-full mb-6">
-                <FileText size={64} className="text-blue-500 dark:text-blue-400" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">No history found</h3>
-              <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-md">Return to the homepage and paraphrase your first document to see your intelligent insights saved securely here.</p>
-            </motion.div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-full mb-6">
+                  <FileText size={64} className="text-blue-500 dark:text-blue-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">No history found</h3>
+                <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-md">Return to the homepage and paraphrase your first document to see your intelligent insights saved securely here.</p>
+              </motion.div>
             </GlowingShadow>
           ) : (
             <motion.div 
@@ -129,59 +176,59 @@ export default function Dashboard() {
                     whileHover={{ y: -5, scale: 1.01 }}
                     className="bg-white/90 dark:bg-[#111] p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 flex flex-col h-full relative overflow-hidden group"
                   >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/5 dark:to-purple-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/5 dark:to-purple-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
 
-                  <div className="flex justify-between items-center mb-6 relative z-10">
-                    <span className="px-4 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 border border-blue-100 dark:border-blue-800">
-                      <Type size={14} /> {item.tone}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded-full">
-                      <Calendar size={14} /> {new Date(item.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  <div className="flex-1 space-y-5 relative z-10">
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Original Context</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 italic opacity-80 border-l-2 border-gray-200 dark:border-gray-700 pl-3">&quot;{item.original_text}&quot;</p>
-                    </div>
-                    <div className="relative">
-                      <div className="flex justify-between items-center mb-2">
-                         <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">AI Paraphrased</h4>
-                         <button
-                           onClick={(e) => {
-                             e.preventDefault();
-                             navigator.clipboard.writeText(item.paraphrased_text);
-                             setCopiedId(item.id);
-                             setTimeout(() => setCopiedId(null), 2000);
-                           }}
-                           className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-white dark:bg-gray-800 p-1.5 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-1 text-xs font-semibold"
-                           title="Copy entire text"
-                         >
-                           {copiedId === item.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                           {copiedId === item.id ? "COPIED" : "COPY"}
-                         </button>
-                      </div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 max-h-36 overflow-y-auto bg-gray-50/50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-100 dark:border-gray-800 custom-scrollbar">
-                        {item.paraphrased_text}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 pt-5 border-t border-gray-100 dark:border-gray-800 flex justify-between relative z-10">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">Structural Risk</span>
-                      <span className={`text-lg font-bold flex items-center gap-1.5 ${item.similarity_score > 60 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
-                        <Percent size={18} /> {item.similarity_score}%
+                    <div className="flex justify-between items-center mb-6 relative z-10">
+                      <span className="px-4 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 border border-blue-100 dark:border-blue-800">
+                        <Type size={14} /> {item.tone}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded-full">
+                        <Calendar size={14} /> {new Date(item.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className="flex flex-col text-right">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">Web Exact Matches</span>
-                      <span className={`text-lg font-bold flex items-center justify-end gap-1.5 ${item.web_score > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                        {item.web_score}% 
-                      </span>
+                    
+                    <div className="flex-1 space-y-5 relative z-10">
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Original Context</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 italic opacity-80 border-l-2 border-gray-200 dark:border-gray-700 pl-3">&quot;{item.original_text}&quot;</p>
+                      </div>
+                      <div className="relative">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">AI Paraphrased</h4>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              navigator.clipboard.writeText(item.paraphrased_text);
+                              setCopiedId(item.id);
+                              setTimeout(() => setCopiedId(null), 2000);
+                            }}
+                            className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-white dark:bg-gray-800 p-1.5 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-1 text-xs font-semibold"
+                            title="Copy entire text"
+                          >
+                            {copiedId === item.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                            {copiedId === item.id ? "COPIED" : "COPY"}
+                          </button>
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 max-h-36 overflow-y-auto bg-gray-50/50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-100 dark:border-gray-800 custom-scrollbar">
+                          {item.paraphrased_text}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="mt-8 pt-5 border-t border-gray-100 dark:border-gray-800 flex justify-between relative z-10">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">Structural Risk</span>
+                        <span className={`text-lg font-bold flex items-center gap-1.5 ${item.similarity_score > 60 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
+                          <Percent size={18} /> {item.similarity_score}%
+                        </span>
+                      </div>
+                      <div className="flex flex-col text-right">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">Web Exact Matches</span>
+                        <span className={`text-lg font-bold flex items-center justify-end gap-1.5 ${item.web_score > 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                          {item.web_score}%
+                        </span>
+                      </div>
+                    </div>
                   </motion.div>
                 </GlowingShadow>
               ))}

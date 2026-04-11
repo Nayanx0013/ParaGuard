@@ -3,7 +3,6 @@
 import { AlertTriangle, CheckCircle2, Info, Globe, Type } from "lucide-react";
 import { motion } from "framer-motion";
 import RippleWaveLoader from "@/components/ui/ripple-wave-loader";
-import { GlowingShadow } from "@/components/ui/glowing-shadow";
 
 interface PlagiarismScoreProps {
   score: number | null; // Structural similarity
@@ -93,13 +92,12 @@ export default function PlagiarismScore({ score, webScore, webCheckMeta, isCheck
   const RiskIcon = riskLevel.icon;
   
   return (
-    <GlowingShadow className="w-full" intensity="reduced">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, staggerChildren: 0.2 }}
-        className="mt-8 space-y-4"
-      >
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, staggerChildren: 0.2 }}
+      className="mt-8 space-y-4"
+    >
       {/* Structural Similarity Card */}
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
@@ -182,7 +180,5 @@ export default function PlagiarismScore({ score, webScore, webCheckMeta, isCheck
         </motion.div>
       )}
     </motion.div>
-    </GlowingShadow>
   );
 }
-

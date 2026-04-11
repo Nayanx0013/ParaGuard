@@ -362,33 +362,40 @@ async function searchDuckDuckGo(query: string): Promise<ProviderSearchResult> {
 }
 
 // ─── Fallback chain ───────────────────────────────────────────────────────────
-async function searchWithFallback(query: string): Promise<ProviderSearchResult> {
-  const providers: Array<() => Promise<ProviderSearchResult>> = [
-    () => searchSerper(query),
-    () => searchSearlo(query),
-    () => searchTavily(query),
-    () => searchDuckDuckGo(query),
+type SearchWithFallbackResult = ProviderSearchResult & { failedProviders: SearchProviderName[] };
+
+async function searchWithFallback(query: string): Promise<SearchWithFallbackResult> {
+  const providers: Array<{ provider: SearchProviderName, fn: () => Promise<ProviderSearchResult> }> = [
+    { provider: "serper", fn: () => searchSerper(query) },
+    { provider: "searlo", fn: () => searchSearlo(query) },
+    { provider: "tavily", fn: () => searchTavily(query) },
+    { provider: "duckduckgo", fn: () => searchDuckDuckGo(query) },
   ];
 
   let lastError: Error | null = null;
+  const failedProviders: SearchProviderName[] = [];
 
-  for (const providerFn of providers) {
+  for (const { provider, fn } of providers) {
     try {
-      return await providerFn();
+      const result = await fn();
+      return { ...result, failedProviders };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      const provider = (err as { provider?: SearchProviderName })?.provider ?? "unknown";
+      const errorProvider = (err as { provider?: SearchProviderName })?.provider ?? provider;
+      failedProviders.push(errorProvider as SearchProviderName);
+      
       const skipLog = (err as { skipLog?: boolean })?.skipLog;
       if (!skipLog) {
         console.warn(
-          `[plagiarism] "${provider}" failed → trying next. Reason: ${lastError.message}`
+          `[plagiarism] "${errorProvider}" failed → trying next. Reason: ${lastError.message}`
         );
       }
     }
   }
 
-  throw new Error(
-    `All search providers exhausted. Last error: ${lastError?.message}`
+  throw Object.assign(
+    new Error(`All search providers exhausted. Last error: ${lastError?.message}`),
+    { failedProviders }
   );
 }
 
@@ -399,15 +406,19 @@ async function checkSentenceOnWeb(
   const sentenceWords = sentence.split(/\s+/).filter(Boolean);
   const query = sentenceWords.slice(0, 14).join(" ");
 
-  let result: ProviderSearchResult;
+  let result: SearchWithFallbackResult;
   try {
     result = await searchWithFallback(query);
-  } catch {
-    throw new Error("All search providers failed for this sentence");
+  } catch (err) {
+    const errorFailedProviders = (err as { failedProviders?: SearchProviderName[] })?.failedProviders || [];
+    throw Object.assign(
+      new Error("All search providers failed for this sentence"), 
+      { failedProviders: errorFailedProviders }
+    );
   }
 
   const successfulProviders: SearchProviderName[] = [result.provider];
-  const failedProviders: SearchProviderName[] = [];
+  const failedProviders: SearchProviderName[] = result.failedProviders;
   const { snippets } = result;
 
   if (snippets.length === 0) {
@@ -528,12 +539,15 @@ export async function POST(request: Request) {
           if (result.value.matched) foundMatches++;
         } else {
           failedSentenceChecks++;
+          const allFailedProviders = (result.reason as { failedProviders?: SearchProviderName[] })?.failedProviders || [];
+          for (const p of allFailedProviders) providersFailed.add(p);
         }
       }
 
+      const successfulChecks = sampledSentenceCount - failedSentenceChecks;
       webPlagiarismScore = calculateWebPlagiarismScore(
         foundMatches,
-        sampledSentenceCount
+        successfulChecks
       );
     }
 

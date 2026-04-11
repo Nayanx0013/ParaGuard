@@ -16,13 +16,39 @@ export default function ToneSelector({ selectedTone, onChange, disabled }: ToneS
           key={tone}
           onClick={() => onChange(tone)}
           disabled={disabled}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-            selectedTone === tone
-              ? "bg-blue-500/30 dark:bg-blue-600/40 text-blue-700 dark:text-blue-200 border-blue-400/50 dark:border-blue-500/50 shadow-md"
-              : "bg-white/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 border-white/20 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/10 backdrop-blur-sm"
-          } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          className={`group relative flex items-center gap-2 border-2 rounded-full px-4 py-2 text-sm font-medium
+                      transition-all duration-500 ease-out overflow-hidden backdrop-blur-sm
+                      before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent
+                      before:via-white/5 before:to-transparent before:translate-x-[-100%]
+                      hover:before:translate-x-[100%] before:transition-transform before:duration-700
+                      ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-105 active:scale-95"}
+                      ${selectedTone === tone
+                        ? "border-cyan-400 shadow-lg shadow-purple-500/40 text-cyan-100"
+                        : "border-purple-500/70 text-white hover:border-cyan-400 hover:shadow-lg hover:shadow-purple-500/40"
+                      }`}
         >
-          {tone}
+          {/* Background glow */}
+          <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-cyan-500/0
+                          transition-opacity duration-500
+                          ${selectedTone === tone ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} />
+
+          {/* Text */}
+          <span className="relative z-10 transition-all duration-300 group-hover:text-cyan-100">
+            {tone}
+          </span>
+
+          {/* Animated dot — only on selected */}
+          {selectedTone === tone && (
+            <span className="relative z-10 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-purple-400/50">
+              <div className="absolute inset-0 rounded-full bg-cyan-400 animate-ping opacity-60"
+                style={{ animationDuration: "2s" }} />
+            </span>
+          )}
+
+          {/* Outer glow ring */}
+          <div className={`absolute inset-0 rounded-full border-2 border-cyan-400/0
+                          transition-all duration-500
+                          ${selectedTone === tone ? "border-cyan-400/30 opacity-100" : "opacity-0 group-hover:border-cyan-400/30 group-hover:opacity-100"}`} />
         </button>
       ))}
     </div>

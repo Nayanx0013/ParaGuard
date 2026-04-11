@@ -153,7 +153,7 @@ export function GlowingShadow({ children, className = "", intensity = "normal" }
           height: 100%;
           border-radius: var(--card-radius);
           box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-          mix-blend-mode: color-dodge;
+          mix-blend-mode: normal;
           z-index: -1;
           background: hsl(0deg 0% 16%) radial-gradient(
             30% 30% at calc(var(--bg-x) * 1%) calc(var(--bg-y) * 1%),
@@ -198,7 +198,7 @@ export function GlowingShadow({ children, className = "", intensity = "normal" }
           position: relative;
           border-radius: 50%;
           animation: hue-animation var(--animation-speed) linear infinite;
-          opacity: 0.25;
+          opacity: 0.08;
         }
 
         .glow-wrapper[data-intensity="reduced"] .glow:after {
@@ -215,7 +215,7 @@ export function GlowingShadow({ children, className = "", intensity = "normal" }
         }
 
         .glow-wrapper:hover .glow-content:before {
-          --bg-size: 15;
+          --bg-size: 4;
           animation-play-state: paused;
           transition: --bg-size var(--interaction-speed) ease;
         }
@@ -227,7 +227,7 @@ export function GlowingShadow({ children, className = "", intensity = "normal" }
         }
 
         .glow-wrapper:hover .glow:after {
-          opacity: 0.35;
+          opacity: 0.12;
         }
 
         @keyframes shadow-pulse {

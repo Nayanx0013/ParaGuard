@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Orbitron } from "next/font/google";
 import TextEditor from "@/components/TextEditor";
 import ToneSelector from "@/components/ToneSelector";
 import ResultCard from "@/components/ResultCard";
@@ -8,6 +9,8 @@ import PlagiarismScore from "@/components/PlagiarismScore";
 import { GridGlowBackground } from "@/components/ui/grid-glow-background";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
+
+const orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 type WebCheckMeta = {
   sampledSentenceCount: number;
@@ -71,8 +74,6 @@ export default function HomePage() {
       }
 
       setRewrittenText(data.result);
-      
-      // Now run similarity check
       checkSimilarity(originalText, data.result, selectedTone);
       
     } catch (err: unknown) {
@@ -115,7 +116,6 @@ export default function HomePage() {
         degradedWebCheck: Boolean(data.degradedWebCheck),
       });
 
-      // Save to Supabase History if logged in
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -158,11 +158,12 @@ export default function HomePage() {
           className="max-w-4xl mx-auto relative z-10"
         >
           <div className="text-center mb-10">
+            {/* Orbitron title */}
             <motion.h1 
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.8, type: "spring" }}
-              className="text-4xl font-extrabold tracking-tight sm:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400"
+              className={`${orbitron.className} text-4xl font-extrabold tracking-tight sm:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400`}
             >
               AI Paraphraser & Plagiarism Checker
             </motion.h1>
@@ -171,7 +172,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Error message container with reserved height to prevent layout shift */}
           <div className="min-h-[60px]">
             {error && (
               <motion.div 
@@ -199,24 +199,56 @@ export default function HomePage() {
                   disabled={isParaphrasing || isChecking}
                 />
                 
+                {/* Glowing Paraphrase Now button */}
                 <button
                   onClick={handleParaphrase}
                   disabled={isParaphrasing || isChecking || !originalText.trim()}
-                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white transform hover:-translate-y-1"
+                  className="group relative w-full sm:w-auto flex items-center justify-center gap-2
+                             border-2 border-purple-500/70 rounded-full px-8 py-4
+                             transition-all duration-500 ease-out
+                             hover:border-cyan-400 hover:shadow-lg hover:shadow-purple-500/40
+                             hover:scale-105 active:scale-95 overflow-hidden backdrop-blur-sm
+                             disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+                             disabled:hover:border-purple-500/70 disabled:hover:shadow-none
+                             before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent
+                             before:via-white/5 before:to-transparent before:translate-x-[-100%]
+                             hover:before:translate-x-[100%] before:transition-transform before:duration-700"
                 >
+                  {/* Background glow */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-cyan-500/0
+                                  opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  {/* Text / Spinner */}
                   {isParaphrasing ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-5 w-5 text-white relative z-10" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Synthesizing...
+                      <span className="text-white font-medium tracking-wide text-sm relative z-10">Synthesizing...</span>
                     </>
-                  ) : "Paraphrase Now"}
+                  ) : (
+                    <>
+                      <span className="text-white font-medium tracking-wide text-sm transition-all duration-300
+                                       group-hover:text-cyan-100 relative z-10">
+                        Paraphrase Now
+                      </span>
+                      {/* Animated dot */}
+                      <span className="relative z-10 w-3 h-3 bg-cyan-400 rounded-full transition-all duration-500 ease-out
+                                       group-hover:bg-purple-400 group-hover:shadow-lg group-hover:shadow-purple-400/50 group-hover:scale-110">
+                        <div className="absolute inset-0 rounded-full bg-cyan-400 animate-ping opacity-0 group-hover:opacity-60"
+                          style={{ animationDuration: "2s" }} />
+                      </span>
+                    </>
+                  )}
+
+                  {/* Outer glow ring */}
+                  <div className="absolute inset-0 rounded-full border-2 border-cyan-400/0
+                                  group-hover:border-cyan-400/30 transition-all duration-500
+                                  opacity-0 group-hover:opacity-100" />
                 </button>
               </div>
 
-              {/* Results container with minimum height to prevent layout shift */}
               <div className="mt-10 min-h-[200px]">
                 {(rewrittenText || isParaphrasing) && (
                   <ResultCard 
@@ -227,7 +259,6 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Plagiarism score container with minimum height */}
               <div className="min-h-[180px]">
                 {(similarityScore !== null || isChecking) && (
                   <PlagiarismScore

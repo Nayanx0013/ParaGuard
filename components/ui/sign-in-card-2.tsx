@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { Mail, ArrowRight, Loader } from 'lucide-react';
+import { Mail, ArrowRight, Loader, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from "@/lib/utils"
 
@@ -63,7 +63,7 @@ export function SignInCard2() {
       const { error: err } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
         },
       });
 
@@ -134,11 +134,11 @@ export function SignInCard2() {
               className="absolute -inset-[1px] rounded-2xl opacity-0 group-hover:opacity-70 transition-opacity duration-700"
               animate={{
                 boxShadow: [
-                  "0 0 10px 2px rgba(255,255,255,0.03)",
-                  "0 0 15px 5px rgba(255,255,255,0.05)",
-                  "0 0 10px 2px rgba(255,255,255,0.03)"
+                  "0 0 10px 2px rgba(168,85,247,0.1)",
+                  "0 0 20px 5px rgba(168,85,247,0.2)",
+                  "0 0 10px 2px rgba(168,85,247,0.1)"
                 ],
-                opacity: [0.2, 0.4, 0.2]
+                opacity: [0.2, 0.5, 0.2]
               }}
               transition={{ 
                 duration: 4, 
@@ -152,7 +152,7 @@ export function SignInCard2() {
             <div className="absolute -inset-[1px] rounded-2xl overflow-hidden">
               {/* Top light beam */}
               <motion.div 
-                className="absolute top-0 left-0 h-[3px] w-[50%] bg-gradient-to-r from-transparent via-white to-transparent opacity-70"
+                className="absolute top-0 left-0 h-[3px] w-[50%] bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-70"
                 initial={{ filter: "blur(2px)" }}
                 animate={{ 
                   left: ["-50%", "100%"],
@@ -181,7 +181,7 @@ export function SignInCard2() {
               
               {/* Right light beam */}
               <motion.div 
-                className="absolute top-0 right-0 h-[50%] w-[3px] bg-gradient-to-b from-transparent via-white to-transparent opacity-70"
+                className="absolute top-0 right-0 h-[50%] w-[3px] bg-gradient-to-b from-transparent via-cyan-400 to-transparent opacity-70"
                 initial={{ filter: "blur(2px)" }}
                 animate={{ 
                   top: ["-50%", "100%"],
@@ -213,7 +213,7 @@ export function SignInCard2() {
               
               {/* Bottom light beam */}
               <motion.div 
-                className="absolute bottom-0 right-0 h-[3px] w-[50%] bg-gradient-to-r from-transparent via-white to-transparent opacity-70"
+                className="absolute bottom-0 right-0 h-[3px] w-[50%] bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-70"
                 initial={{ filter: "blur(2px)" }}
                 animate={{ 
                   right: ["-50%", "100%"],
@@ -245,7 +245,7 @@ export function SignInCard2() {
               
               {/* Left light beam */}
               <motion.div 
-                className="absolute bottom-0 left-0 h-[50%] w-[3px] bg-gradient-to-b from-transparent via-white to-transparent opacity-70"
+                className="absolute bottom-0 left-0 h-[50%] w-[3px] bg-gradient-to-b from-transparent via-cyan-400 to-transparent opacity-70"
                 initial={{ filter: "blur(2px)" }}
                 animate={{ 
                   bottom: ["-50%", "100%"],
@@ -295,17 +295,18 @@ export function SignInCard2() {
                   initial={{ scale: 0.5, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", duration: 0.8 }}
-                  className="mx-auto w-10 h-10 rounded-full border border-white/10 flex items-center justify-center relative overflow-hidden"
+                  className="mx-auto w-12 h-12 rounded-full border border-purple-500/30 flex items-center justify-center relative overflow-hidden"
+                  style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.2), rgba(6,182,212,0.2))" }}
                 >
-                  <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">P</span>
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
+                  <ShieldCheck className="w-6 h-6 text-purple-400" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 opacity-50" />
                 </motion.div>
 
                 <motion.h1
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/80"
+                  className="text-xl font-bold text-white"
                 >
                   Welcome Back
                 </motion.h1>
@@ -314,7 +315,7 @@ export function SignInCard2() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.3 }}
-                  className="text-white/60 text-xs"
+                  className="text-cyan-400/80 text-xs tracking-wide"
                 >
                   {step === 'email' ? 'Sign in to ParaGuard' : 'Enter your OTP code'}
                 </motion.p>
@@ -354,7 +355,7 @@ export function SignInCard2() {
                         >
                           <div className="relative flex items-center overflow-hidden rounded-lg">
                             <Mail className={`absolute left-3 w-4 h-4 transition-all duration-300 ${
-                              focusedInput === "email" ? 'text-white' : 'text-white/40'
+                              focusedInput === "email" ? 'text-cyan-400' : 'text-white/40'
                             }`} />
                             
                             <Input
@@ -365,7 +366,7 @@ export function SignInCard2() {
                               onFocus={() => setFocusedInput("email")}
                               onBlur={() => setFocusedInput(null)}
                               disabled={isLoading}
-                              className="w-full bg-white/5 border-transparent focus:border-white/20 text-white placeholder:text-white/30 h-10 transition-all duration-300 pl-10 pr-3 focus:bg-white/10 disabled:opacity-50"
+                              className="w-full bg-white/5 border-transparent focus:border-purple-500/40 text-white placeholder:text-white/30 h-10 transition-all duration-300 pl-10 pr-3 focus:bg-white/10 disabled:opacity-50"
                             />
                           </div>
                         </motion.div>
@@ -394,17 +395,17 @@ export function SignInCard2() {
                               onFocus={() => setFocusedInput("otp")}
                               onBlur={() => setFocusedInput(null)}
                               disabled={isLoading}
-                              className="w-full bg-white/5 border-transparent focus:border-white/20 text-white placeholder:text-white/30 h-10 transition-all duration-300 px-3 focus:bg-white/10 disabled:opacity-50 tracking-[0.2em] font-mono text-center"
+                              className="w-full bg-white/5 border-transparent focus:border-purple-500/40 text-white placeholder:text-white/30 h-10 transition-all duration-300 px-3 focus:bg-white/10 disabled:opacity-50 tracking-[0.2em] font-mono text-center"
                             />
                           </div>
-                          <p className="text-xs text-white/50 mt-2">Check your email for the OTP code</p>
+                          <p className="text-xs text-cyan-400/60 mt-2">Check your email for the OTP code</p>
                         </motion.div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </motion.div>
 
-                {/* Sign in button */}
+                {/* Glowing Send OTP / Verify OTP button — matches navbar Login button */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -412,14 +413,25 @@ export function SignInCard2() {
                   disabled={isLoading || (step === 'email' ? !email : !otp)}
                   className="w-full relative group/button mt-5"
                 >
-                  <div className="absolute inset-0 bg-white/10 rounded-lg blur-lg opacity-0 group-hover/button:opacity-70 transition-opacity duration-300" />
-                  
-                  <div className="relative overflow-hidden bg-white text-black font-medium h-10 rounded-lg transition-all duration-300 flex items-center justify-center disabled:opacity-50">
+                  <div className="absolute inset-0 bg-purple-500/10 rounded-full blur-lg opacity-0 group-hover/button:opacity-70 transition-opacity duration-300" />
+
+                  <div className="group relative w-full flex justify-center items-center gap-2 border-2 border-purple-500/70 rounded-full h-10
+                                  transition-all duration-500 ease-out
+                                  hover:border-cyan-400 hover:shadow-lg hover:shadow-purple-500/40
+                                  overflow-hidden backdrop-blur-sm
+                                  disabled:opacity-40
+                                  before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent
+                                  before:via-white/5 before:to-transparent before:translate-x-[-100%]
+                                  hover:before:translate-x-[100%] before:transition-transform before:duration-700">
+
+                    {/* Background glow */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-cyan-500/0
+                                    opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                    {/* Shimmer on loading */}
                     <motion.div 
-                      className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 -z-10"
-                      animate={{ 
-                        x: ['-100%', '100%'],
-                      }}
+                      className="absolute inset-0 bg-gradient-to-r from-white/0 via-purple-400/20 to-white/0 -z-10"
+                      animate={{ x: ['-100%', '100%'] }}
                       transition={{ 
                         duration: 1.5, 
                         ease: "easeInOut", 
@@ -431,7 +443,7 @@ export function SignInCard2() {
                         transition: 'opacity 0.3s ease'
                       }}
                     />
-                    
+
                     <AnimatePresence mode="wait">
                       {isLoading ? (
                         <motion.div
@@ -439,9 +451,10 @@ export function SignInCard2() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="flex items-center justify-center"
+                          className="flex items-center gap-2 relative z-10"
                         >
-                          <Loader className="w-4 h-4 animate-spin" />
+                          <Loader className="w-4 h-4 animate-spin text-purple-400" />
+                          <span className="text-purple-300 text-sm font-medium">Processing...</span>
                         </motion.div>
                       ) : (
                         <motion.span
@@ -449,13 +462,28 @@ export function SignInCard2() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="flex items-center justify-center gap-1 text-sm font-medium"
+                          className="flex items-center gap-2 relative z-10"
                         >
-                          {step === 'email' ? 'Send OTP' : 'Verify OTP'}
-                          <ArrowRight className="w-3 h-3 group-hover/button:translate-x-1 transition-transform duration-300" />
+                          <span className="text-white font-medium tracking-wide text-sm transition-all duration-300 group-hover:text-cyan-100">
+                            {step === 'email' ? 'Send OTP' : 'Verify OTP'}
+                          </span>
+                          <ArrowRight className="w-3 h-3 text-cyan-400 group-hover:text-purple-400 group-hover:translate-x-1 transition-all duration-300" />
+                          {/* Animated dot */}
+                          <span className="relative w-3 h-3 bg-cyan-400 rounded-full transition-all duration-500
+                                           group-hover:bg-purple-400 group-hover:shadow-lg group-hover:shadow-purple-400/50 group-hover:scale-110">
+                            <div
+                              className="absolute inset-0 rounded-full bg-cyan-400 animate-ping opacity-0 group-hover:opacity-60"
+                              style={{ animationDuration: "2s" }}
+                            />
+                          </span>
                         </motion.span>
                       )}
                     </AnimatePresence>
+
+                    {/* Outer glow ring */}
+                    <div className="absolute inset-0 rounded-full border-2 border-cyan-400/0
+                                    group-hover:border-cyan-400/30 transition-all duration-500
+                                    opacity-0 group-hover:opacity-100" />
                   </div>
                 </motion.button>
 
@@ -468,7 +496,7 @@ export function SignInCard2() {
                       setOtp('');
                       setError(null);
                     }}
-                    className="w-full text-white/60 hover:text-white transition-colors text-xs py-2"
+                    className="w-full text-purple-400/70 hover:text-cyan-400 transition-colors text-xs py-2"
                   >
                     ← Back to email
                   </motion.button>
