@@ -1,6 +1,6 @@
 "use client"
 
-import { type ReactNode } from "react"
+import { type ReactNode, useState, useRef, useEffect } from "react"
 
 interface GlowingShadowProps {
   children: ReactNode
@@ -8,6 +8,37 @@ interface GlowingShadowProps {
 }
 
 export function GlowingShadow({ children, className = "" }: GlowingShadowProps) {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!wrapperRef.current) return;
+      
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      setMousePos({ x, y });
+    };
+
+    const handleMouseLeave = () => {
+      setMousePos({ x: 50, y: 50 });
+    };
+
+    const wrapper = wrapperRef.current;
+    if (wrapper) {
+      wrapper.addEventListener("mousemove", handleMouseMove);
+      wrapper.addEventListener("mouseleave", handleMouseLeave);
+    }
+
+    return () => {
+      if (wrapper) {
+        wrapper.removeEventListener("mousemove", handleMouseMove);
+        wrapper.removeEventListener("mouseleave", handleMouseLeave);
+      }
+    };
+  }, []);
    
   return (
     <>
@@ -57,15 +88,15 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
           inherits: true;
           initial-value: 2;
         }
-        @property --glow-radius {
+        @property --glow-pos-x {
           syntax: "<number>";
           inherits: true;
-          initial-value: 2;
+          initial-value: 50;
         }
-        @property --white-shadow {
+        @property --glow-pos-y {
           syntax: "<number>";
           inherits: true;
-          initial-value: 0;
+          initial-value: 50;
         }
 
         .glow-wrapper {
@@ -142,15 +173,15 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
           position: absolute;
           width: 100px;
           height: 100px;
-          animation: rotate var(--animation-speed) linear infinite;
-          transform: rotateZ(calc(var(--rotate) * var(--glow-rotate-unit)));
+          animation: none;
+          transform: none;
           transform-origin: center;
-          border-radius: calc(var(--glow-radius) * 10vw);
+          border-radius: 50%;
           pointer-events: none;
-          top: 50%;
-          left: 50%;
-          margin: -50px 0 0 -50px;
+          top: calc(var(--glow-pos-y) * 1% - 50px);
+          left: calc(var(--glow-pos-x) * 1% - 50px);
           z-index: 1;
+          transition: top 0.08s ease-out, left 0.08s ease-out;
         }
 
         .glow:after {
@@ -164,12 +195,9 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
           top: -15%;
           background: hsl(calc(var(--hue) * var(--hue-speed) * 1deg) 100% 60%);
           position: relative;
-          border-radius: calc(var(--glow-radius) * 10vw);
+          border-radius: 50%;
           animation: hue-animation var(--animation-speed) linear infinite;
-          transform: scaleY(calc(var(--glow-scale) * var(--scale-factor) / 1.1))
-                     scaleX(calc(var(--glow-scale) * var(--scale-factor) * 1.2))
-                     translateY(calc(var(--glow-translate-y) * 1%));
-          opacity: var(--glow-opacity);
+          opacity: 0.25;
         }
 
         .glow-wrapper:hover .glow-content {
@@ -185,21 +213,12 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
 
         .glow-wrapper:hover .glow {
           --glow-blur: 2;
-          --glow-opacity: 0.6;
-          --glow-scale: 1.8;
-          --glow-radius: 0;
-          --rotate: 900;
-          --glow-rotate-unit: 0;
-          --scale-factor: 1;
+          --glow-opacity: 0.3;
           animation-play-state: paused;
         }
 
         .glow-wrapper:hover .glow:after {
-          --glow-translate-y: 0;
-          animation-play-state: paused;
-          transition: --glow-translate-y 0s ease, --glow-blur 0.05s ease,
-                      --glow-opacity 0.05s ease, --glow-scale 0.05s ease,
-                      --glow-radius 0.05s ease;
+          opacity: 0.35;
         }
 
         @keyframes shadow-pulse {
@@ -273,7 +292,7 @@ export function GlowingShadow({ children, className = "" }: GlowingShadowProps) 
         }
       `}</style>
 
-      <div className={`glow-wrapper ${className}`}>
+      <div className={`glow-wrapper ${className}`} ref={wrapperRef} style={{ '--glow-pos-x': `${mousePos.x}`, '--glow-pos-y': `${mousePos.y}` } as React.CSSProperties}>
         <span className="glow"></span>
         <div className="glow-content">{children}</div>
       </div>
