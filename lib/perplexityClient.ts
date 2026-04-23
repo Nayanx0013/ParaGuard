@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function scorePerplexity(text: string): Promise<any | null> {
     const url = process.env.NEXT_PUBLIC_HF_SPACES_URL;
     if (!url) return null;
@@ -23,7 +24,7 @@ export async function scorePerplexity(text: string): Promise<any | null> {
         if (!res.ok) return null;
         
         return await res.json();
-    } catch (e) {
+    } catch (_e) {
         return null; // HF Spaces timeout or failure
     }
 }

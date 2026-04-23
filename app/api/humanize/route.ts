@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       const pScore = await scorePerplexity(currentText);
       if (pScore) perplexityScore = pScore.normalized;
       
-      const combinedScore = ((perplexityScore || finalScore) + finalScore) / 2;
+      // combinedScore removed to fix unused variable warning
       
       if ((perplexityScore && perplexityScore > 65) || (!perplexityScore && finalScore > 70)) {
          break; // Good enough

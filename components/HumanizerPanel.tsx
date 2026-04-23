@@ -8,7 +8,9 @@ import { Copy, Check, ShieldAlert, ShieldCheck, Shield } from "lucide-react";
 export default function HumanizerPanel() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [corpusStatus, setCorpusStatus] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
