@@ -1,6 +1,6 @@
 "use client";
 
-export const TONES = ["Formal", "Casual", "Academic", "Creative", "Shorten", "Expand", "AI Humanizer"];
+export const TONES = ["Formal", "Casual", "Academic", "Creative", "Shorten", "Expand"];
 
 interface ToneSelectorProps {
   selectedTone: string;
