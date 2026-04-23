@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         body: JSON.stringify({
             model: "llama3-8b-8192",
             messages: [
-                { role: "system", content: HUMANIZER_PROMPTS[`LEVEL_${level}`] + "\n\n" + getCorpusAwarePromptInjection(level as 1|2|3) },
+                { role: "system", content: HUMANIZER_PROMPTS[`LEVEL_${level}`] + "\n\n" + getCorpusAwarePromptInjection() },
                 { role: "user", content: currentText }
             ]
         })

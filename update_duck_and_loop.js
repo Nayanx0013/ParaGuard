@@ -1,3 +1,4 @@
+/* eslint-disable */
 const fs = require('fs');
 const filePath = 'app/api/plagiarism-check/route.ts';
 let content = fs.readFileSync(filePath, 'utf8');

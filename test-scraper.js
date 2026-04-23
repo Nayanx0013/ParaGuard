@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable */
+const fs = require('fs');
 const cheerio = require('cheerio');
 
 async function test() {

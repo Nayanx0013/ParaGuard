@@ -10,7 +10,7 @@ try {
     const data = fs.readFileSync(filePath, 'utf8');
     corpusModel = JSON.parse(data);
   }
-} catch (_e) {
+} catch {
   // Ignore
 }
 
@@ -24,7 +24,7 @@ export function getCorpusHumanPatterns(): string[] {
   return corpusModel.humanTransitionPhrases || [];
 }
 
-export function getCorpusAwarePromptInjection(_level: 1|2|3): string {
+export function getCorpusAwarePromptInjection(): string {
   if (!corpusModel) return "";
   const phrases = getCorpusHumanPatterns().slice(0, 10).join(", ");
   return `Use these transition phrases that appear frequently in human writing: ${phrases}`;

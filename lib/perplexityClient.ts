@@ -24,7 +24,7 @@ export async function scorePerplexity(text: string): Promise<any | null> {
         if (!res.ok) return null;
         
         return await res.json();
-    } catch (_e) {
+    } catch {
         return null; // HF Spaces timeout or failure
     }
 }
