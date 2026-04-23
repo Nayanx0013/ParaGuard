@@ -22,8 +22,6 @@ type ParaphraseHistory = {
   web_score: number;
 };
 
-import HumanizerPanel from '@/components/HumanizerPanel';
-
 export default function Dashboard() {
   const [histories, setHistories] = useState<ParaphraseHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,10 +94,6 @@ export default function Dashboard() {
             </div>
 
           </motion.div>
-
-          <div className="mb-12">
-            <HumanizerPanel />
-          </div>
 
           {!histories || histories.length === 0 ? (
             <GlowingShadow className="w-full">

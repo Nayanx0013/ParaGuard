@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { Orbitron } from "next/font/google";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shuffle, ShieldCheck } from "lucide-react";
+import { Shuffle, ShieldCheck, Sparkles } from "lucide-react";
 
 import TextEditor from "@/components/TextEditor";
 import ToneSelector from "@/components/ToneSelector";
 import ResultCard from "@/components/ResultCard";
 import PlagiarismScore from "@/components/PlagiarismScore";
 import PlagiarismChecker from "@/components/PlagiarismChecker";
+import HumanizerPanel from "@/components/HumanizerPanel";
 import { GridGlowBackground } from "@/components/ui/grid-glow-background";
 import { createClient } from "@/lib/supabase/client";
 
@@ -149,7 +150,7 @@ type WebScoreBand = {
   high: number;
 };
 
-type Tab = "paraphraser" | "plagiarism";
+type Tab = "paraphraser" | "plagiarism" | "humanizer";
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -245,8 +246,9 @@ export default function HomePage() {
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode; description: string }[] = [
-    { id: "paraphraser", label: "Paraphraser", icon: <Shuffle size={15} />, description: "Bypass AI detectors & rewrite text" },
+    { id: "paraphraser", label: "Paraphraser", icon: <Shuffle size={15} />, description: "Rewrite and improve text" },
     { id: "plagiarism", label: "Plagiarism Checker", icon: <ShieldCheck size={15} />, description: "Ensure 100% originality" },
+    { id: "humanizer", label: "AI Humanizer", icon: <Sparkles size={15} />, description: "Bypass AI detectors & humanize text" },
   ];
 
   return (
@@ -439,7 +441,7 @@ export default function HomePage() {
                 {/* ── END NEON CARD ── */}
 
               </motion.div>
-            ) : (
+            ) : activeTab === "plagiarism" ? (
               <motion.div
                 key="plagiarism"
                 initial={{ opacity: 0, x: 24 }}
@@ -448,6 +450,32 @@ export default function HomePage() {
                 transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
               >
                 <PlagiarismChecker />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="humanizer"
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
+              >
+                <div className="neon-card">
+                  <div className="neon-card-inner">
+                    <div className="px-6 pt-5 pb-4 flex items-center justify-between">
+                      <span className="neon-badge"><Sparkles size={11} />AI Humanizer</span>
+                      <span className="text-white/25 text-xs tracking-widest">ADVANCED AI</span>
+                    </div>
+                    <div className="neon-divider" />
+                    <div className="p-2 sm:p-4">
+                      <HumanizerPanel />
+                    </div>
+                    <div className="neon-divider" />
+                    <div className="px-6 py-3 flex items-center justify-between">
+                      <span className="text-white/20 text-xs tracking-wider">© 2026 NAYAN GHOSH</span>
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)]" />
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
