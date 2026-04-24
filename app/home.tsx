@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Orbitron } from "next/font/google";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shuffle, ShieldCheck, Sparkles } from "lucide-react";

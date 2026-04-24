@@ -24,25 +24,40 @@ export default function HumanizerPanel() {
   const [result, setResult] = useState<HumanizerResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleHumanize = async () => {
     if (!inputText.trim()) return;
     setLoading(true);
+    // BUG FIX: Clear previous result so stale humanizedText never shows.
     setResult(null);
+    setError(null);
 
     try {
       const res = await fetch("/api/humanize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // BUG FIX: Ensure the key matches what route.ts destructures: { text }
         body: JSON.stringify({ text: inputText }),
       });
-      
-      if (!res.ok) throw new Error("Failed to humanize");
-      
-      const data = await res.json();
-      setResult(data as HumanizerResult);
+
+      // BUG FIX: Parse error responses properly instead of silently failing.
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Unknown server error" }));
+        throw new Error(errData.error || `Server error ${res.status}`);
+      }
+
+      const data = await res.json() as HumanizerResult;
+
+      // BUG FIX: Validate that humanizedText actually came back and is different.
+      if (!data.humanizedText || typeof data.humanizedText !== "string") {
+        throw new Error("The server returned an empty humanized text.");
+      }
+
+      setResult(data);
     } catch (err) {
-      console.error(err);
+      console.error("HumanizerPanel error:", err);
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -99,9 +114,21 @@ export default function HumanizerPanel() {
         </button>
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-red-500/15 border border-red-500/40 rounded-2xl text-red-300 text-sm"
+        >
+          ⚠️ {error}
+        </motion.div>
+      )}
+
       <AnimatePresence mode="wait">
         {result && (
           <motion.div
+            key={result.humanizedText}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -121,7 +148,7 @@ export default function HumanizerPanel() {
                       {stat.val}%
                     </span>
                     <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mb-2">
-                      <motion.div 
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${stat.val}%` }}
                         transition={{ duration: 1, ease: "easeOut" }}
@@ -134,20 +161,20 @@ export default function HumanizerPanel() {
             </div>
 
             <div className={`p-6 rounded-3xl border-2 backdrop-blur-xl flex items-center gap-6 ${
-              result.combinedScore > 70 
-                ? "bg-green-500/10 border-green-500/40 shadow-[0_0_20px_rgba(34,197,94,0.1)]" 
+              result.combinedScore > 70
+                ? "bg-green-500/10 border-green-500/40 shadow-[0_0_20px_rgba(34,197,94,0.1)]"
                 : "bg-red-500/10 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)]"
             }`}>
               <div className="p-3 bg-white/5 rounded-2xl">
-                {result.combinedScore > 70 
-                  ? <ShieldCheck className="text-green-400" size={32} /> 
+                {result.combinedScore > 70
+                  ? <ShieldCheck className="text-green-400" size={32} />
                   : <ShieldAlert className="text-red-400" size={32} />
                 }
               </div>
               <div className="space-y-1">
                 <div className="text-lg font-black text-white uppercase tracking-tight">Verdict: {result.verdict}</div>
                 <div className="text-xs text-gray-400 font-medium">
-                  Refined through {result.passesUsed} humanization passes. Structural weaknesses addressed.
+                  Refined through {result.passesUsed} humanization {result.passesUsed === 1 ? "pass" : "passes"}. Structural weaknesses addressed.
                 </div>
               </div>
             </div>
@@ -156,10 +183,10 @@ export default function HumanizerPanel() {
               <div className="absolute -top-3 left-6 px-3 bg-[#0a0a0a] text-[11px] text-indigo-400 font-black uppercase tracking-widest z-10 border border-indigo-500/30 rounded-full">
                 Humanized Content
               </div>
-              <div className="w-full min-h-[20rem] p-8 bg-white/5 border border-indigo-500/20 rounded-[2.5rem] text-gray-200 text-lg leading-relaxed shadow-inner">
+              <div className="w-full min-h-[20rem] p-8 bg-white/5 border border-indigo-500/20 rounded-[2.5rem] text-gray-200 text-lg leading-relaxed shadow-inner whitespace-pre-wrap">
                 {result.humanizedText}
               </div>
-              
+
               <div className="absolute top-6 right-6 flex gap-2">
                 <button
                   onClick={copyToClipboard}
