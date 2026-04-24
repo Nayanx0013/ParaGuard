@@ -52,7 +52,7 @@ export async function POST(req: Request) {
             "Authorization": `Bearer ${groqKey}`
           },
           body: JSON.stringify({
-            model: "llama3-8b-8192",
+            model: "llama-3.3-70b-versatile",
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: currentText }
