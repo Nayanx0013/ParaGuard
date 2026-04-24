@@ -65,11 +65,17 @@ function applyInMemoryRateLimit(ip: string): { allowed: boolean; remaining: numb
 }
 
 export async function proxy(request: NextRequest) {
-  // Only apply rate limiting to the paraphrase and plagiarism API endpoints
-  if (
+  // Apply rate limiting to AI-heavy endpoints.
+  // /api/humanize gets a tighter limit — each call makes up to 3 Groq requests.
+  const isHumanize = request.nextUrl.pathname.startsWith('/api/humanize');
+  const isOtherApi =
     request.nextUrl.pathname.startsWith('/api/paraphrase') ||
-    request.nextUrl.pathname.startsWith('/api/plagiarism-check')
-  ) {
+    request.nextUrl.pathname.startsWith('/api/plagiarism-check');
+
+  if (isHumanize || isOtherApi) {
+    // Humanize: max 8 req/min. Others: max 20 req/min.
+    const maxReqs = isHumanize ? 8 : MAX_REQUESTS;
+
     const ip =
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       request.headers.get('x-real-ip') ||
@@ -109,7 +115,7 @@ export async function proxy(request: NextRequest) {
           status: 429,
           headers: {
             'Content-Type': 'application/json',
-            'X-RateLimit-Limit': String(MAX_REQUESTS),
+            'X-RateLimit-Limit': String(maxReqs),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(fallbackResult.reset),
           },
@@ -117,7 +123,7 @@ export async function proxy(request: NextRequest) {
       );
     } else {
       const response = NextResponse.next();
-      response.headers.set('X-RateLimit-Limit', String(MAX_REQUESTS));
+      response.headers.set('X-RateLimit-Limit', String(maxReqs));
       response.headers.set('X-RateLimit-Remaining', String(fallbackResult.remaining));
       response.headers.set('X-RateLimit-Reset', String(fallbackResult.reset));
       return response;

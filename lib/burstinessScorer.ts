@@ -72,43 +72,64 @@ export function scoreBurstiness(text: string): BurstinessResult {
   const pVariance = pLengths.reduce((sum, len) => sum + Math.pow(len - pMean, 2), 0) / (pLengths.length || 1);
   result.paragraphVariance = Math.sqrt(pVariance);
 
-  // Human Likelihood Score Calculation
+  // ── Human Likelihood Score (v2) ─────────────────────────────────────────────
+  // Instead of penalising deviation from a single "target" value, we directly
+  // reward signals that are characteristic of human writing and punish AI patterns.
   let rawScore = 0;
-  
-  // Burstiness (target: 0.426) -> 40 pts max
-  const burstDiff = Math.abs(result.burstinessScore - 0.426);
-  const burstPts = Math.max(0, 40 - (burstDiff * 100)); // somewhat arbitrary scaling
-  rawScore += burstPts;
 
-  // Vocab (target: 0.694) -> 30 pts max
-  const vocabDiff = Math.abs(result.vocabularyDiversity - 0.694);
-  const vocabPts = Math.max(0, 30 - (vocabDiff * 100));
-  rawScore += vocabPts;
+  // 1. Sentence length variance (25 pts)
+  // Human writing has high stddev relative to mean. Reward higher burstiness.
+  // A burstiness ratio of 0.3+ is human-like; cap reward at 0.8+.
+  const burstNorm = Math.min(result.burstinessScore / 0.8, 1);
+  rawScore += burstNorm * 25;
 
-  // Passive Voice (target: 0.181) -> 20 pts max
-  const passiveDiff = Math.abs(result.passiveVoiceRatio - 0.181);
-  const passivePts = Math.max(0, 20 - (passiveDiff * 100));
-  rawScore += passivePts;
+  // 2. Vocabulary diversity (20 pts)
+  // Reward higher TTR. Penalise below 0.4 (repetitive AI output).
+  const vocabNorm = Math.min(result.vocabularyDiversity / 0.75, 1);
+  rawScore += vocabNorm * 20;
 
-  // Paragraph Variance -> 10 pts (just reward higher variance)
-  const pVarPts = Math.min(10, result.paragraphVariance / 2);
+  // 3. Contractions present (15 pts) — strong human signal
+  const hasContractions = /'(?:s|re|ve|m|ll|d|t)\b/.test(text);
+  if (hasContractions) rawScore += 15;
+
+  // 4. Rhetorical question present (10 pts)
+  if (text.includes('?')) rawScore += 10;
+
+  // 5. Sentence length mix (15 pts)
+  // Reward presence of both short (≤8 words) and long (≥25 words) sentences.
+  const hasShort = lengths.some(l => l <= 8);
+  const hasLong  = lengths.some(l => l >= 25);
+  if (hasShort) rawScore += 7;
+  if (hasLong)  rawScore += 8;
+
+  // 6. AI uniformity penalty (-15 pts)
+  // If >50% of sentences are in the 15-22 word "AI sweet spot", deduct points.
+  const uniformAI = lengths.filter(l => l >= 15 && l <= 22).length;
+  if (sentences.length > 0 && uniformAI / sentences.length > 0.5) {
+    rawScore -= 15;
+  }
+
+  // 7. Paragraph variance bonus (10 pts)
+  const pVarPts = Math.min(10, result.paragraphVariance / 3);
   rawScore += pVarPts;
 
-  result.humanLikelihoodScore = Math.min(100, Math.max(0, rawScore));
+  // 8. First-person voice bonus (5 pts)
+  if (/\b(I |I'm |I've |I'll |I'd |from my |in my )/i.test(text)) rawScore += 5;
+
+  result.humanLikelihoodScore = Math.min(100, Math.max(0, Math.round(rawScore)));
 
   // Determine Verdict
-  if (result.humanLikelihoodScore >= 70) result.verdict = 'likely-human';
-  else if (result.humanLikelihoodScore >= 40) result.verdict = 'borderline';
+  if (result.humanLikelihoodScore >= 65) result.verdict = 'likely-human';
+  else if (result.humanLikelihoodScore >= 35) result.verdict = 'borderline';
   else result.verdict = 'likely-ai';
 
-  // Weaknesses
+  // Weaknesses — only flag remaining issues
   if (result.consecutiveSameLengthCount >= 3) result.weaknesses.push("Multiple consecutive sentences have very similar lengths.");
-  if (result.vocabularyDiversity < 0.5) result.weaknesses.push("Low vocabulary diversity. Many repeated words.");
-  if (!text.match(/'(?:s|re|ve|m|ll|d|t)\b/)) result.weaknesses.push("Zero contractions detected. Try using them.");
-  if (!text.includes("?")) result.weaknesses.push("No question marks. Consider adding a rhetorical question.");
-  const aiSentences = lengths.filter(l => l >= 15 && l <= 22).length;
-  if (sentences.length > 0 && aiSentences / sentences.length > 0.6) {
-      result.weaknesses.push("More than 60% of sentences are 15-22 words long (AI pattern).");
+  if (result.vocabularyDiversity < 0.45) result.weaknesses.push("Low vocabulary diversity. Many repeated words.");
+  if (!hasContractions) result.weaknesses.push("Zero contractions detected. Try using them.");
+  if (!text.includes('?')) result.weaknesses.push("No question marks. Consider adding a rhetorical question.");
+  if (sentences.length > 0 && uniformAI / sentences.length > 0.5) {
+    result.weaknesses.push("More than 50% of sentences are 15–22 words long (AI uniformity pattern).");
   }
 
   return result;

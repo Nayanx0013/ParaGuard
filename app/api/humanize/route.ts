@@ -4,14 +4,26 @@ import { scoreBurstiness } from '@/lib/burstinessScorer';
 import { HUMANIZER_PROMPTS } from '@/lib/humanizer/prompts';
 import { scorePerplexity } from '@/lib/perplexityClient';
 import { calibrateBurstinessScore, getCorpusAwarePromptInjection } from '@/lib/humanizer/corpusCalibration';
+import { preprocessText, splitLongSentences, countAIMarkers } from '@/lib/humanizer/preprocessor';
 
 /**
- * AI Humanize Pipeline: A 5-layer process to transform AI text into human-like prose.
+ * AI Humanize Pipeline v2 — 6-layer process
+ * Layer 1: Diagnostics
+ * Layer 2: Pre-processing (synonym replacement, sentence splitting)
+ * Layer 3: 3-Pass LLM Rewriting with adaptive level escalation
+ * Layer 4: Post-processing (sentence splitting on LLM output)
+ * Layer 5: Calibration + scoring
+ * Layer 6: Perplexity verification (optional)
  */
 export async function POST(req: Request) {
   try {
     const { text } = await req.json();
-    if (!text) return NextResponse.json({ error: 'Text required' }, { status: 400 });
+    if (!text || typeof text !== 'string') {
+      return NextResponse.json({ error: 'Text required' }, { status: 400 });
+    }
+    if (text.trim().length < 20) {
+      return NextResponse.json({ error: 'Text too short to humanize' }, { status: 400 });
+    }
 
     const groqKey = process.env.GROQ_API_KEY;
     if (!groqKey) {
@@ -19,128 +31,175 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'System configuration error' }, { status: 500 });
     }
 
-    let currentText = text;
-    let passesUsed = 0;
-    let finalScore = 0;
-    let perplexityScore = 0;
-
-    // Layer 1: Initial Diagnostics
+    // ── Layer 1: Initial Diagnostics ─────────────────────────────────────────
     const initialPhraseRes = detectAIPhrases(text);
-    const initialBurstRes = scoreBurstiness(text);
+    const initialBurstRes  = scoreBurstiness(text);
+    const initialAIMarkers = countAIMarkers(text);
 
-    // Determine starting intensity level based on robotic risk
-    let level = initialBurstRes.humanLikelihoodScore < 40 ? 3 : (initialBurstRes.humanLikelihoodScore < 60 ? 2 : 1);
+    console.log(`[humanize] Input: ${text.length} chars, aiScore=${initialPhraseRes.aiScore}, humanLikelihood=${initialBurstRes.humanLikelihoodScore}, markers=${initialAIMarkers}`);
 
-    // BUG FIX #3: getCorpusAwarePromptInjection() could return "" if corpus not loaded.
-    // That's fine — we just guard against "undefined" being concatenated.
-    const corpusInjection = getCorpusAwarePromptInjection() || "";
+    // ── Layer 2: Pre-processing ───────────────────────────────────────────────
+    // Run word-level synonym replacement BEFORE the LLM so it can focus on
+    // structural rewrites rather than surface-level substitutions.
+    let currentText = preprocessText(text);
+    currentText = splitLongSentences(currentText);
 
-    // Layer 2: The 3-Pass Refinement Loop
+    const markersAfterPreprocess = countAIMarkers(currentText);
+    console.log(`[humanize] After preprocess: markers ${initialAIMarkers} → ${markersAfterPreprocess}`);
+
+    // Determine starting intensity: higher AI score = start at higher level
+    let level = initialBurstRes.humanLikelihoodScore < 35
+      ? 3
+      : initialBurstRes.humanLikelihoodScore < 60
+        ? 2
+        : 1;
+
+    // Corpus-aware prompt injection (avoid patterns + human transitions)
+    const corpusInjection = getCorpusAwarePromptInjection() || '';
+
+    let passesUsed  = 0;
+    let finalScore  = 0;
+
+    // ── Layer 3: 3-Pass LLM Rewriting ────────────────────────────────────────
     while (passesUsed < 3) {
       passesUsed++;
 
-      const systemPrompt = (HUMANIZER_PROMPTS[`LEVEL_${level}`] || HUMANIZER_PROMPTS['LEVEL_1']) + corpusInjection;
+      const promptKey    = `LEVEL_${level}`;
+      const systemPrompt = (HUMANIZER_PROMPTS[promptKey] || HUMANIZER_PROMPTS['LEVEL_1']) + corpusInjection;
 
-      console.log(`[humanize] Pass ${passesUsed}, level ${level}, input length: ${currentText.length}`);
+      console.log(`[humanize] Pass ${passesUsed} — level ${level}, input ${currentText.length} chars`);
 
       let groqRes: Response;
       try {
-        groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
+        groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${groqKey}`
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`,
           },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
+            model: 'llama-3.3-70b-versatile',
             messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: currentText }
+              { role: 'system', content: systemPrompt },
+              { role: 'user',   content: currentText  },
             ],
-            temperature: 0.8
-          })
+            temperature: 0.85,
+            max_tokens: 2048,
+          }),
         });
       } catch (fetchErr) {
-        // BUG FIX #1: Network-level fetch errors were silently swallowed.
-        console.error(`[humanize] Pass ${passesUsed}: fetch to Groq failed:`, fetchErr);
+        console.error(`[humanize] Pass ${passesUsed}: network error fetching Groq:`, fetchErr);
         break;
       }
 
-      // BUG FIX #1: Non-200 from Groq was silently breaking the loop but keeping
-      // currentText === original text. Now we log the actual error body.
       if (!groqRes.ok) {
         const errBody = await groqRes.text();
-        console.error(`[humanize] Pass ${passesUsed}: Groq returned ${groqRes.status}:`, errBody);
+        console.error(`[humanize] Pass ${passesUsed}: Groq ${groqRes.status}:`, errBody);
         break;
       }
 
       const data = await groqRes.json();
-
-      // BUG FIX #2: THE MAIN BUG.
-      // data.choices[0].message.content could be undefined/null if Groq returns
-      // a streaming response, a refusal, or a malformed payload.
-      // Previously: currentText = data.choices[0].message.content
-      // If that is undefined, currentText becomes undefined, which then gets
-      // JSON-serialised as null and the UI receives the original input text
-      // from the stale React state. Fixed: only update if content is a non-empty string.
       const newContent: string | undefined = data?.choices?.[0]?.message?.content;
 
       if (!newContent || typeof newContent !== 'string' || newContent.trim().length === 0) {
-        console.error(`[humanize] Pass ${passesUsed}: Groq response had no usable content.`, JSON.stringify(data).slice(0, 500));
+        console.error(`[humanize] Pass ${passesUsed}: empty content from Groq`, JSON.stringify(data).slice(0, 300));
         break;
       }
 
       currentText = newContent.trim();
-      console.log(`[humanize] Pass ${passesUsed}: Got ${currentText.length} chars back from Groq`);
+      console.log(`[humanize] Pass ${passesUsed}: received ${currentText.length} chars`);
 
-      // Layer 3: Calibration
+      // ── Layer 4: Post-processing after each LLM pass ─────────────────────
+      // Split any run-on sentences the LLM produced
+      currentText = splitLongSentences(currentText);
+
+      // ── Layer 5: Calibrated scoring ───────────────────────────────────────
       const stats = scoreBurstiness(currentText);
-      finalScore = calibrateBurstinessScore(stats.humanLikelihoodScore);
+      finalScore  = calibrateBurstinessScore(stats.humanLikelihoodScore);
 
-      // Layer 4: Quality Check - Exit early if text is sufficiently humanized
-      if (finalScore > 75) break;
+      const remainingMarkers = countAIMarkers(currentText);
+      console.log(`[humanize] Pass ${passesUsed}: humanScore=${Math.round(finalScore)}, markers=${remainingMarkers}`);
 
-      // Increase intensity if text remains robotic
+      // Exit early if sufficiently humanized
+      if (finalScore > 72) {
+        console.log(`[humanize] Early exit at pass ${passesUsed} — score ${Math.round(finalScore)} > 72`);
+        break;
+      }
+
+      // Escalate intensity for next pass if still too robotic
       if (level < 3) level++;
 
-      // 1-second delay to manage rate limits
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Brief pause to respect rate limits
+      if (passesUsed < 3) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
     }
 
-    // Layer 5: Perplexity Verification (optional — HF Spaces may be offline)
-    const pResult = await scorePerplexity(currentText);
-    perplexityScore = pResult?.normalized ?? 0;
-
-    // BUG FIX #4: combinedScore was 0 when perplexity returned null because
-    // finalScore was never set if the loop broke immediately (level 3, pass 1, break).
-    // Now we re-score if finalScore is still 0.
+    // Fallback: re-score if loop broke before scoring (e.g. Groq error on pass 1)
     if (finalScore === 0) {
       const stats = scoreBurstiness(currentText);
-      finalScore = calibrateBurstinessScore(stats.humanLikelihoodScore);
+      finalScore  = calibrateBurstinessScore(stats.humanLikelihoodScore);
     }
 
-    // Calculate final combined certainty.
-    // If perplexity is unavailable (0), fall back entirely to burstiness score.
+    // ── Layer 6: Perplexity Verification (optional — HF Spaces) ──────────────
+    const pResult        = await scorePerplexity(currentText);
+    const perplexityScore = pResult?.normalized ?? 0;
+
+    // Combined score: if perplexity unavailable, rely solely on burstiness
     const combinedScore = perplexityScore > 0
-      ? Math.round((finalScore * 0.7) + (perplexityScore * 0.3))
+      ? Math.round((finalScore * 0.65) + (perplexityScore * 0.35))
       : Math.round(finalScore);
 
-    console.log(`[humanize] Done. passesUsed=${passesUsed} finalScore=${finalScore} perplexity=${perplexityScore} combined=${combinedScore}`);
+    // GPTZero integration (Gap 4) — only if API key is set
+    let gptzeroScore: number | null = null;
+    const gptzeroKey = process.env.GPTZERO_API_KEY;
+    if (gptzeroKey) {
+      try {
+        const gzRes = await fetch('https://api.gptzero.me/v2/predict/text', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': gptzeroKey,
+          },
+          body: JSON.stringify({ document: currentText }),
+        });
+        if (gzRes.ok) {
+          const gzData = await gzRes.json();
+          const aiProb = gzData?.documents?.[0]?.completely_generated_prob;
+          if (typeof aiProb === 'number') {
+            // Convert AI probability to human score (invert)
+            gptzeroScore = Math.round((1 - aiProb) * 100);
+            console.log(`[humanize] GPTZero human score: ${gptzeroScore}%`);
+          }
+        }
+      } catch (gzErr) {
+        console.warn('[humanize] GPTZero call failed (non-critical):', gzErr);
+      }
+    }
+
+    // Final combined score factoring in GPTZero if available
+    const finalCombined = gptzeroScore !== null
+      ? Math.round((combinedScore * 0.4) + (gptzeroScore * 0.6))
+      : combinedScore;
+
+    console.log(`[humanize] Complete — passes=${passesUsed} burstScore=${Math.round(finalScore)} perplexity=${perplexityScore} gptzero=${gptzeroScore} combined=${finalCombined}`);
 
     return NextResponse.json({
-      humanizedText: currentText,
-      originalScore: Math.round(initialBurstRes.humanLikelihoodScore),
-      phraseScore: initialPhraseRes.aiScore,
-      finalScore: Math.round(finalScore),
-      perplexityScore: Math.round(perplexityScore),
-      combinedScore: combinedScore,
+      humanizedText:     currentText,
+      originalScore:     Math.round(initialBurstRes.humanLikelihoodScore),
+      phraseScore:       initialPhraseRes.aiScore,
+      finalScore:        Math.round(finalScore),
+      perplexityScore:   Math.round(perplexityScore),
+      gptzeroScore,
+      combinedScore:     finalCombined,
       passesUsed,
-      verdict: combinedScore > 70 ? 'Likely Human' : (combinedScore > 40 ? 'Borderline' : 'Likely AI'),
-      weaknesses: initialBurstRes.weaknesses
+      markersRemoved:    Math.max(0, initialAIMarkers - countAIMarkers(currentText)),
+      verdict:           finalCombined > 68 ? 'Likely Human' : finalCombined > 38 ? 'Borderline' : 'Likely AI',
+      weaknesses:        initialBurstRes.weaknesses,
     });
 
   } catch (error) {
-    console.error("[humanize] Unhandled error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error('[humanize] Unhandled error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
