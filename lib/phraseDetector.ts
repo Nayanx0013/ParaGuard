@@ -1,16 +1,43 @@
-import { phraseReplacements } from "./phraseReplacements";
+import React from "react";
 
-export type PhraseDetectionResult = {
-  flaggedPhrases: Array<{ phrase: string, category: 'A'|'B'|'C', position: number, suggestion: string[] }>;
-  aiScore: number;
-  riskLevel: 'low' | 'medium' | 'high';
-  sentenceStartPattern: { word: string, count: number }[];
+/**
+ * Local Phrase Replacement Map defined inline as requested.
+ * Defines common AI patterns and their suggested human-like alternatives.
+ */
+const LOCAL_REPLACEMENTS: Record<string, string[]> = {
+  "furthermore": ["also", "on top of that", "besides"],
+  "moreover": ["additionally", "as well", "besides"],
+  "additionally": ["also", "plus", "and"],
+  "utilize": ["use", "apply", "employ"],
+  "delve": ["look into", "explore", "dig in"],
+  "testament to": ["proof of", "sign of"],
+  "pivotal": ["key", "huge", "main"],
+  "seamlessly": ["smoothly", "easily", "perfectly"],
+  "groundbreaking": ["new", "innovative", "fresh"],
+  "cutting-edge": ["modern", "new", "latest"],
+  "in conclusion": ["finally", "lastly", "to wrap up"],
+  "in summary": ["basically", "overall", "shortly"],
+  "tapestry": ["mix", "blend", "collection"],
+  "multifaceted": ["complex", "varied", "rich"],
+  "leverage": ["use", "tap into", "apply"],
+  "robust": ["strong", "solid", "tough"],
+  "enhance": ["improve", "boost", "better"],
+  "innovative": ["new", "fresh", "creative"]
 };
 
-const CATEGORY_A = ["furthermore", "moreover", "additionally", "utilize", "utilization", "delve", "delves", "delving", "testament to", "pivotal", "seamlessly", "groundbreaking", "cutting-edge", "it is important to note", "it is worth noting", "in conclusion", "in summary", "in today's rapidly evolving", "in the realm of", "as previously mentioned", "it goes without saying", "needless to say", "last but not least"];
-const CATEGORY_B = ["significant", "significantly", "comprehensive", "comprehensively", "robust", "enhance", "leverage", "innovative", "paradigm", "holistic", "streamline", "scalable", "actionable", "synergy", "ecosystem"];
-const CATEGORY_C = ["This", "The", "In", "It"];
+export type PhraseDetectionResult = {
+  flaggedPhrases: Array<{ phrase: string; category: 'A'|'B'|'C'; position: number; suggestion: string[] }>;
+  aiScore: number;
+  riskLevel: 'low' | 'medium' | 'high';
+  sentenceStartPattern: { word: string; count: number }[];
+};
 
+/**
+ * detectAIPhrases: Identifies common AI-linked phrases and patterns.
+ * 
+ * @param text - The text to analyze.
+ * @returns An object containing detected phrases, calculated score, and patterns.
+ */
 export function detectAIPhrases(text: string): PhraseDetectionResult {
   const result: PhraseDetectionResult = {
     flaggedPhrases: [],
@@ -24,54 +51,37 @@ export function detectAIPhrases(text: string): PhraseDetectionResult {
   const lowerText = text.toLowerCase();
   let score = 0;
 
-  // Check Category A
-  for (const phrase of CATEGORY_A) {
+  // Scan for all phrases in the local map
+  Object.keys(LOCAL_REPLACEMENTS).forEach(phrase => {
     let index = lowerText.indexOf(phrase);
     while (index !== -1) {
       result.flaggedPhrases.push({
         phrase,
-        category: 'A',
+        category: phrase.length > 8 ? 'A' : 'B',
         position: index,
-        suggestion: getSuggestedReplacements(phrase)
+        suggestion: LOCAL_REPLACEMENTS[phrase]
       });
-      score += 10;
+      score += phrase.length > 8 ? 10 : 5;
       index = lowerText.indexOf(phrase, index + 1);
     }
-  }
+  });
 
-  // Check Category B
-  for (const phrase of CATEGORY_B) {
-    let index = lowerText.indexOf(phrase);
-    while (index !== -1) {
-      result.flaggedPhrases.push({
-        phrase,
-        category: 'B',
-        position: index,
-        suggestion: getSuggestedReplacements(phrase)
-      });
-      score += 5;
-      index = lowerText.indexOf(phrase, index + 1);
-    }
-  }
-
-  // Check Category C (Sentence Starters)
+  // Sentence Start Analysis (Human writing varies more than AI)
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
   const startWords = sentences.map(s => s.trim().split(/\s+/)[0]);
   
+  const commonStarts = ["This", "The", "In", "It"];
   let currentWord = "";
   let consecutiveCount = 0;
   
   for (const word of startWords) {
-    if (CATEGORY_C.includes(word) && word === currentWord) {
+    if (commonStarts.includes(word) && word === currentWord) {
       consecutiveCount++;
-      if (consecutiveCount >= 4) {
+      if (consecutiveCount >= 3) {
+         score += 10;
          const existing = result.sentenceStartPattern.find(p => p.word === word);
-         if (existing) {
-             existing.count = consecutiveCount;
-         } else {
-             result.sentenceStartPattern.push({ word, count: consecutiveCount });
-         }
-         score += 15;
+         if (existing) existing.count = consecutiveCount;
+         else result.sentenceStartPattern.push({ word, count: consecutiveCount });
       }
     } else {
       currentWord = word;
@@ -86,10 +96,16 @@ export function detectAIPhrases(text: string): PhraseDetectionResult {
   return result;
 }
 
+/**
+ * getSuggestedReplacements: Provides alternatives for a detected phrase.
+ */
 export function getSuggestedReplacements(phrase: string): string[] {
-  return phraseReplacements[phrase] || ["rephrase this"];
+  return LOCAL_REPLACEMENTS[phrase.toLowerCase()] || ["rephrase this"];
 }
 
+/**
+ * calculateAIScore: Returns a quick 0-100 score based on AI patterns.
+ */
 export function calculateAIScore(text: string): number {
   return detectAIPhrases(text).aiScore;
 }
