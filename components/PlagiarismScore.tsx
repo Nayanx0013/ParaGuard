@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import { AlertTriangle, CheckCircle2, Info, Globe, Type } from "lucide-react";
 import { motion } from "framer-motion";
