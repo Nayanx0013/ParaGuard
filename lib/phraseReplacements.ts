@@ -109,8 +109,7 @@ export const phraseReplacements: Record<string, string[]> = {
   "vertical": ["area", "market", "field"],
   "wheelhouse": ["area", "skillset", "expertise"],
   "white paper": ["report", "guide", "study"],
-  "bandwidth": ["time", "room", "energy"],
-  "synergy": ["collaboration", "unity"],
+
   "moving forward": ["from now on", "next", "later"],
   "going forward": ["from now on", "in the future"],
   "at this point in time": ["now", "right now", "currently"],
