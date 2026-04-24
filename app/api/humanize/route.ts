@@ -150,34 +150,31 @@ export async function POST(req: Request) {
       ? Math.round((finalScore * 0.65) + (perplexityScore * 0.35))
       : Math.round(finalScore);
 
-    // GPTZero integration (Gap 4) — only if API key is set
+    // External AI Detector integration (Replaces GPTZero)
     let gptzeroScore: number | null = null;
-    const gptzeroKey = process.env.GPTZERO_API_KEY;
-    if (gptzeroKey) {
+    const detectorUrl = process.env.NEXT_PUBLIC_HF_DETECTOR_URL;
+    if (detectorUrl) {
       try {
-        const gzRes = await fetch('https://api.gptzero.me/v2/predict/text', {
+        const detRes = await fetch(`${detectorUrl}/detect`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': gptzeroKey,
           },
-          body: JSON.stringify({ document: currentText }),
+          body: JSON.stringify({ text: currentText }),
         });
-        if (gzRes.ok) {
-          const gzData = await gzRes.json();
-          const aiProb = gzData?.documents?.[0]?.completely_generated_prob;
-          if (typeof aiProb === 'number') {
-            // Convert AI probability to human score (invert)
-            gptzeroScore = Math.round((1 - aiProb) * 100);
-            console.log(`[humanize] GPTZero human score: ${gptzeroScore}%`);
+        if (detRes.ok) {
+          const detData = await detRes.json();
+          if (typeof detData.human_score === 'number') {
+            gptzeroScore = detData.human_score;
+            console.log(`[humanize] HF Detector human score: ${gptzeroScore}%`);
           }
         }
-      } catch (gzErr) {
-        console.warn('[humanize] GPTZero call failed (non-critical):', gzErr);
+      } catch (detErr) {
+        console.warn('[humanize] HF Detector call failed (non-critical):', detErr);
       }
     }
 
-    // Final combined score factoring in GPTZero if available
+    // Final combined score factoring in external detector if available
     const finalCombined = gptzeroScore !== null
       ? Math.round((combinedScore * 0.4) + (gptzeroScore * 0.6))
       : combinedScore;
