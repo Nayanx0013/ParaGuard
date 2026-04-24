@@ -10,8 +10,10 @@ interface HumanizerResult {
   phraseScore: number;
   finalScore: number;
   perplexityScore: number;
+  gptzeroScore: number | null;
   combinedScore: number;
   passesUsed: number;
+  markersRemoved: number;
   verdict: string;
   weaknesses?: string[];
 }
@@ -134,12 +136,67 @@ export default function HumanizerPanel() {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-8"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* ── Before / After AI Score (Step 6) ────────────────────── */}
+            <div className="p-6 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-sm space-y-4">
+              <div className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">AI Detection Score — Before vs After</div>
+              <div className="flex items-center gap-4">
+                {/* Before */}
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between text-xs text-gray-400 font-medium">
+                    <span>Before</span>
+                    <span className="text-red-400 font-black">{result.phraseScore}% AI</span>
+                  </div>
+                  <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${result.phraseScore}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className="h-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] rounded-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div className="flex-shrink-0 text-indigo-400 font-black text-lg">→</div>
+
+                {/* After */}
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between text-xs text-gray-400 font-medium">
+                    <span>After</span>
+                    <span className={`font-black ${result.combinedScore > 68 ? 'text-green-400' : result.combinedScore > 38 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      {100 - result.combinedScore}% AI
+                    </span>
+                  </div>
+                  <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: `${result.phraseScore}%` }}
+                      animate={{ width: `${100 - result.combinedScore}%` }}
+                      transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+                      className={`h-full rounded-full ${result.combinedScore > 68 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : result.combinedScore > 38 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary line */}
+              <div className="text-center text-xs text-gray-400">
+                AI risk reduced by{" "}
+                <span className="text-green-400 font-black">
+                  {Math.max(0, result.phraseScore - (100 - result.combinedScore))}%
+                </span>
+                {" "}— {result.markersRemoved > 0 && (
+                  <span>{result.markersRemoved} AI phrase{result.markersRemoved !== 1 ? 's' : ''} eliminated · </span>
+                )}
+                {result.passesUsed} rewrite {result.passesUsed === 1 ? 'pass' : 'passes'}
+              </div>
+            </div>
+
+            {/* ── Supporting Metric Cards ──────────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { label: "Phrase Risk", val: result.phraseScore, rev: true },
-                { label: "Burstiness", val: result.originalScore, rev: false },
-                { label: "Perplexity", val: result.perplexityScore, rev: false },
-                { label: "Human Likelihood", val: result.combinedScore, rev: false },
+                { label: "Human Likelihood", val: result.combinedScore,    rev: false },
+                { label: "Perplexity",        val: result.perplexityScore, rev: false },
+                { label: "Burstiness (Before)", val: result.originalScore, rev: false },
               ].map((stat, i) => (
                 <div key={i} className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3 backdrop-blur-sm">
                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">{stat.label}</div>
