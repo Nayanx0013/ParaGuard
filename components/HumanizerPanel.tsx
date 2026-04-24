@@ -2,15 +2,26 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Copy, Check, ShieldAlert, ShieldCheck, RefreshCcw, Zap } from "lucide-react";
+import { Copy, Check, ShieldAlert, ShieldCheck, RefreshCcw, Zap } from "lucide-react";
+
+interface HumanizerResult {
+  humanizedText: string;
+  originalScore: number;
+  phraseScore: number;
+  finalScore: number;
+  perplexityScore: number;
+  combinedScore: number;
+  passesUsed: number;
+  verdict: string;
+  weaknesses?: string[];
+}
 
 /**
  * HumanizerPanel: A specialized interface for the AI Humanizer tool.
- * Adheres to the ParaGuard Cybernetic UI theme.
  */
 export default function HumanizerPanel() {
   const [inputText, setInputText] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<HumanizerResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -29,7 +40,7 @@ export default function HumanizerPanel() {
       if (!res.ok) throw new Error("Failed to humanize");
       
       const data = await res.json();
-      setResult(data);
+      setResult(data as HumanizerResult);
     } catch (err) {
       console.error(err);
     } finally {
@@ -58,7 +69,6 @@ export default function HumanizerPanel() {
 
   return (
     <div className="bg-transparent text-white space-y-8 max-w-4xl mx-auto">
-      {/* ── Input Section ────────────────────────────────────────────── */}
       <div className="relative group">
         <textarea
           value={inputText}
@@ -73,7 +83,6 @@ export default function HumanizerPanel() {
         </div>
       </div>
 
-      {/* ── Action Button ────────────────────────────────────────────── */}
       <div className="flex justify-center">
         <button
           onClick={handleHumanize}
@@ -90,7 +99,6 @@ export default function HumanizerPanel() {
         </button>
       </div>
 
-      {/* ── Results Display ──────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
         {result && (
           <motion.div
@@ -99,7 +107,6 @@ export default function HumanizerPanel() {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-8"
           >
-            {/* Stats Metrics Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: "Phrase Risk", val: result.phraseScore, rev: true },
@@ -126,7 +133,6 @@ export default function HumanizerPanel() {
               ))}
             </div>
 
-            {/* Final Verdict Banner */}
             <div className={`p-6 rounded-3xl border-2 backdrop-blur-xl flex items-center gap-6 ${
               result.combinedScore > 70 
                 ? "bg-green-500/10 border-green-500/40 shadow-[0_0_20px_rgba(34,197,94,0.1)]" 
@@ -146,7 +152,6 @@ export default function HumanizerPanel() {
               </div>
             </div>
 
-            {/* Output Display Container */}
             <div className="relative">
               <div className="absolute -top-3 left-6 px-3 bg-[#0a0a0a] text-[11px] text-indigo-400 font-black uppercase tracking-widest z-10 border border-indigo-500/30 rounded-full">
                 Humanized Content

@@ -1,8 +1,5 @@
-import React from "react";
-
 /**
  * Local Phrase Replacement Map defined inline as requested.
- * Defines common AI patterns and their suggested human-like alternatives.
  */
 const LOCAL_REPLACEMENTS: Record<string, string[]> = {
   "furthermore": ["also", "on top of that", "besides"],
@@ -34,9 +31,6 @@ export type PhraseDetectionResult = {
 
 /**
  * detectAIPhrases: Identifies common AI-linked phrases and patterns.
- * 
- * @param text - The text to analyze.
- * @returns An object containing detected phrases, calculated score, and patterns.
  */
 export function detectAIPhrases(text: string): PhraseDetectionResult {
   const result: PhraseDetectionResult = {
@@ -66,7 +60,7 @@ export function detectAIPhrases(text: string): PhraseDetectionResult {
     }
   });
 
-  // Sentence Start Analysis (Human writing varies more than AI)
+  // Sentence Start Analysis
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
   const startWords = sentences.map(s => s.trim().split(/\s+/)[0]);
   
@@ -96,16 +90,10 @@ export function detectAIPhrases(text: string): PhraseDetectionResult {
   return result;
 }
 
-/**
- * getSuggestedReplacements: Provides alternatives for a detected phrase.
- */
 export function getSuggestedReplacements(phrase: string): string[] {
   return LOCAL_REPLACEMENTS[phrase.toLowerCase()] || ["rephrase this"];
 }
 
-/**
- * calculateAIScore: Returns a quick 0-100 score based on AI patterns.
- */
 export function calculateAIScore(text: string): number {
   return detectAIPhrases(text).aiScore;
 }

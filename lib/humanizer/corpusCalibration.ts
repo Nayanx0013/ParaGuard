@@ -3,20 +3,25 @@ import path from 'path';
 
 /**
  * corpusCalibration: Syncs AI scores with real human writing patterns.
- * Loads a JSON model from /public if available, otherwise uses safe defaults.
  */
 
-let corpusModel: any = null;
+interface CorpusModel {
+  varianceFactor: number;
+  humanTransitions: string[];
+  version: string;
+  updatedAt: string;
+}
+
+let corpusModel: CorpusModel | null = null;
 
 try {
-  // Graceful loading of the style model
   const filePath = path.join(process.cwd(), 'public', 'corpus-style-model.json');
   if (fs.existsSync(filePath)) {
     const data = fs.readFileSync(filePath, 'utf8');
-    corpusModel = JSON.parse(data);
+    corpusModel = JSON.parse(data) as CorpusModel;
   }
-} catch (error) {
-  // If loading fails, the tool will proceed with default math
+} catch {
+  // Graceful fallback if loading fails
 }
 
 /**
