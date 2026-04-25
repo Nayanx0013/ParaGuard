@@ -104,15 +104,33 @@ export default function HumanizerPanel() {
         <button
           onClick={handleHumanize}
           disabled={loading || !inputText.trim()}
-          className="group relative px-12 py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 rounded-full 
-                     font-black text-white shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_30px_rgba(147,51,234,0.5)] 
-                     hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:scale-100 disabled:cursor-not-allowed"
+          className="group relative w-full sm:w-auto flex items-center justify-center gap-2
+                     border-2 border-purple-500/70 rounded-full px-12 py-4
+                     transition-all duration-500 ease-out
+                     hover:border-cyan-400 hover:shadow-lg hover:shadow-purple-500/40
+                     hover:scale-105 active:scale-95 overflow-hidden backdrop-blur-sm
+                     disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+                     disabled:hover:border-purple-500/70 disabled:hover:shadow-none
+                     before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent
+                     before:via-white/5 before:to-transparent before:translate-x-[-100%]
+                     hover:before:translate-x-[100%] before:transition-transform before:duration-700"
         >
-          <span className="flex items-center gap-3 relative z-10">
-            {loading ? <RefreshCcw className="animate-spin" size={20} /> : <Zap size={20} className="group-hover:animate-pulse" />}
-            {loading ? "PROCESSING PIPELINE..." : "HUMANIZE TEXT NOW"}
-          </span>
-          <div className="absolute inset-0 rounded-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          {loading ? (
+            <>
+              <RefreshCcw className="animate-spin text-white relative z-10" size={18} />
+              <span className="text-white font-medium tracking-wide text-sm relative z-10">PROCESSING PIPELINE...</span>
+            </>
+          ) : (
+            <>
+              <Zap size={18} className="text-cyan-400 group-hover:text-purple-300 transition-colors duration-300 relative z-10 group-hover:animate-pulse" />
+              <span className="text-white font-medium tracking-wide text-sm transition-all duration-300 group-hover:text-cyan-100 relative z-10">HUMANIZE TEXT NOW</span>
+              <span className="relative z-10 w-3 h-3 bg-cyan-400 rounded-full transition-all duration-500 ease-out group-hover:bg-purple-400 group-hover:shadow-lg group-hover:shadow-purple-400/50 group-hover:scale-110">
+                <div className="absolute inset-0 rounded-full bg-cyan-400 animate-ping opacity-0 group-hover:opacity-60" style={{ animationDuration: "2s" }} />
+              </span>
+            </>
+          )}
+          <div className="absolute inset-0 rounded-full border-2 border-cyan-400/0 group-hover:border-cyan-400/30 transition-all duration-500 opacity-0 group-hover:opacity-100" />
         </button>
       </div>
 
@@ -192,26 +210,27 @@ export default function HumanizerPanel() {
             </div>
 
             {/* ── Supporting Metric Cards ──────────────────────────────── */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { label: "Human Likelihood", val: result.combinedScore,    rev: false },
-                { label: "Perplexity",        val: result.perplexityScore, rev: false },
-                { label: "Burstiness (Before)", val: result.originalScore, rev: false },
+                { label: "Human Likelihood",    val: result.combinedScore,    rev: false },
+                { label: "Perplexity",          val: result.perplexityScore,  rev: false },
+                { label: "Burstiness (Before)", val: result.originalScore,    rev: false },
+                { label: "Burstiness (After)",  val: result.finalScore,       rev: false },
               ].map((stat, i) => (
-                <div key={i} className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3 backdrop-blur-sm">
+                <div key={i} className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3 backdrop-blur-sm flex flex-col justify-between">
                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">{stat.label}</div>
                   <div className="flex items-end justify-between gap-2">
                     <span className={`text-2xl font-black ${stat.rev ? (stat.val > 60 ? 'text-red-400' : 'text-green-400') : getProgressBarColor(stat.val)}`}>
                       {stat.val}%
                     </span>
-                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mb-2">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${stat.val}%` }}
-                        transition={{ duration: 1, ease: "easeOut" }}
-                        className={`h-full ${getScoreColor(stat.val)}`}
-                      />
-                    </div>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stat.val}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={`h-full ${getScoreColor(stat.val)}`}
+                    />
                   </div>
                 </div>
               ))}
