@@ -284,19 +284,21 @@ export default function HomePage() {
           </div>
 
           {/* ── Tab Switcher ───────────────────────────────────────────────── */}
-          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-6 p-1.5 bg-white/5 dark:bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl w-full sm:w-fit mx-auto">
+          <div className="flex flex-wrap justify-center gap-2 mb-6 p-1.5 bg-white/5 dark:bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl w-full sm:w-fit mx-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium
-                            transition-all duration-300 focus:outline-none flex-grow sm:flex-grow-0
-                            ${activeTab === tab.id ? "text-white" : "text-gray-400 hover:text-gray-200"}`}
+                            transition-all duration-300 focus:outline-none flex-grow sm:flex-grow-0 border
+                            ${activeTab === tab.id 
+                                ? "text-white border-transparent" 
+                                : "text-gray-400 hover:text-gray-200 bg-black/40 border-white/10 hover:bg-white/10 hover:border-white/20 shadow-inner"}`}
               >
                 {activeTab === tab.id && (
                   <motion.div
                     layoutId="tab-pill"
-                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600/60 to-cyan-600/40 border border-white/10 shadow-lg shadow-purple-500/20"
+                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600/60 to-cyan-600/40 border border-white/20 shadow-[0_0_15px_rgba(124,58,237,0.3)]"
                     transition={{ type: "spring", bounce: 0.25, duration: 0.4 }}
                   />
                 )}
