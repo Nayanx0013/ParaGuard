@@ -13,15 +13,14 @@ RULES (follow every one):
    in conclusion, it is important to note, it is worth noting, needless to say) 
    with casual alternatives (also, plus, and yet, to wrap up, worth noting, honestly).
 2. Keep 90% of the original meaning and all factual content — do not invent anything.
-3. If any sentence is longer than 30 words, split it into two.
+3. If any sentence is longer than 30 words, naturally split it into two.
 4. Add at least one contraction (it's, don't, we've, can't, won't, you'll).
 5. Return ONLY the rewritten text — no explanation, no preamble, no quotes around the output.`,
 
   LEVEL_2: `You are rewriting AI-generated text to bypass AI detectors and sound human.
 
 RULES (follow every one — non-negotiable):
-1. SENTENCE RHYTHM: After every long sentence (20+ words), write a short one (4-8 words). 
-   Repeat this short-long-short pattern at least twice.
+1. SENTENCE RHYTHM: Vary your sentence lengths naturally. Mix medium-length explanatory sentences with shorter, punchy ones. Do NOT just tag on 3-word sentences at the end of paragraphs; weave them into the flow.
 2. CONTRACTIONS: Use at least 3 contractions (it's, don't, we've, can't, you'll, 
    they're, I've, won't). This is mandatory.
 3. TRANSITIONS: Replace all academic transitions. Use instead: "Here's the thing,", 
@@ -39,10 +38,8 @@ thoughtful human blogger or student.
 MANDATORY RULES — apply every single one:
 
 STRUCTURE:
-- Create extreme sentence length variation. Follow a 30+ word sentence with a 3-5 word 
-  sentence. Then a medium one (12-18 words). Never have 3 consecutive sentences of 
-  similar length.
-- Break one paragraph into two for breathing room.
+- Create natural sentence length variation. Break up long, dense paragraphs into more readable chunks. Do not force disjointed or fragmented sentences, but avoid long strings of 20+ word sentences.
+- Ensure the text flows conversationally without sounding robotic or repetitive.
 
 VOICE:
 - Use first-person exactly once: "I think", "In my view", "From where I stand", 

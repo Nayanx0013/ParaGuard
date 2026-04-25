@@ -284,13 +284,13 @@ export default function HomePage() {
           </div>
 
           {/* ── Tab Switcher ───────────────────────────────────────────────── */}
-          <div className="flex gap-2 mb-6 p-1.5 bg-white/5 dark:bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl w-fit mx-auto">
+          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-6 p-1.5 bg-white/5 dark:bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl w-full sm:w-fit mx-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium
-                            transition-all duration-300 focus:outline-none
+                className={`relative flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium
+                            transition-all duration-300 focus:outline-none flex-grow sm:flex-grow-0
                             ${activeTab === tab.id ? "text-white" : "text-gray-400 hover:text-gray-200"}`}
               >
                 {activeTab === tab.id && (
@@ -300,7 +300,7 @@ export default function HomePage() {
                     transition={{ type: "spring", bounce: 0.25, duration: 0.4 }}
                   />
                 )}
-                <span className="relative z-10 flex items-center gap-2">{tab.icon}{tab.label}</span>
+                <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">{tab.icon}{tab.label}</span>
               </button>
             ))}
           </div>
