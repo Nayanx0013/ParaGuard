@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from "@/lib/supabase/server";
-import Groq from 'groq-sdk';
 
 export async function POST(request: Request) {
   try {
@@ -17,38 +16,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid text provided. Maximum 20,000 characters allowed.' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'Groq API Key is missing.' }, { status: 500 });
-    }
+    // Use LanguageTool Public API (Free, No API Key)
+    const params = new URLSearchParams();
+    params.append('text', text);
+    params.append('language', 'en-US');
 
-    const groq = new Groq({ apiKey });
-
-    const prompt = `You are a strict, expert copyeditor. Fix all spelling, punctuation, and grammatical errors in the text below. 
-Rules:
-1. ONLY fix grammar and spelling.
-2. DO NOT change the user's tone, vocabulary, or stylistic choices unnecessarily. 
-3. DO NOT expand or summarize the text.
-4. Output ONLY the corrected text. Do not include any explanations, Markdown blocks, or conversational filler like "Here is the fixed text:".
-5. Do not change the author's voice or make text sound more formal than the input.
-6. If the text is already perfectly correct, return it exactly as it was provided.
-
-User Text:
-${text}`;
-
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.1, // very low to prevent hallucinations or creativity
+    const response = await fetch('https://api.languagetool.org/v2/check', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: params,
     });
 
-    const result = chatCompletion.choices[0]?.message?.content || "";
-
-    if (!result) {
-      throw new Error("Empty response from LLM");
+    if (!response.ok) {
+      throw new Error(`LanguageTool returned ${response.status}`);
     }
 
-    return NextResponse.json({ result: result.trim() });
+    const data = await response.json();
+    let fixedText = text;
+
+    if (data.matches && data.matches.length > 0) {
+      // Sort matches by offset descending so we can apply them from the end of the string to the beginning
+      // This prevents earlier offset changes from breaking later offsets
+      const sortedMatches = [...data.matches].sort((a: any, b: any) => b.offset - a.offset);
+
+      for (const match of sortedMatches) {
+        if (match.replacements && match.replacements.length > 0) {
+          const replacement = match.replacements[0].value;
+          fixedText = 
+            fixedText.substring(0, match.offset) + 
+            replacement + 
+            fixedText.substring(match.offset + match.length);
+        }
+      }
+    }
+
+    return NextResponse.json({ result: fixedText });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal Server Error";
     console.error("Grammar Check API Error:", error);
