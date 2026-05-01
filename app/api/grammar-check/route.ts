@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from "@/lib/supabase/server";
 
+interface LanguageToolMatch {
+  offset: number;
+  length: number;
+  replacements: { value: string }[];
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -40,14 +46,14 @@ export async function POST(request: Request) {
     if (data.matches && data.matches.length > 0) {
       // Sort matches by offset descending so we can apply them from the end of the string to the beginning
       // This prevents earlier offset changes from breaking later offsets
-      const sortedMatches = [...data.matches].sort((a: any, b: any) => b.offset - a.offset);
+      const sortedMatches = [...data.matches].sort((a: LanguageToolMatch, b: LanguageToolMatch) => b.offset - a.offset);
 
       for (const match of sortedMatches) {
         if (match.replacements && match.replacements.length > 0) {
           const replacement = match.replacements[0].value;
-          fixedText = 
-            fixedText.substring(0, match.offset) + 
-            replacement + 
+          fixedText =
+            fixedText.substring(0, match.offset) +
+            replacement +
             fixedText.substring(match.offset + match.length);
         }
       }
